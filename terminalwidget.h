@@ -9,11 +9,19 @@
 class TerminalWidget : public QWidget
 {
     Q_OBJECT
+
 public:
     explicit TerminalWidget(QWidget *parent = 0);
 
+    const QString& contents() const;
+    QString &contentsRef();
+    void setContents(const QString &);
+
 protected:
     void paintEvent(QPaintEvent *);
+
+private:
+    QString m_contents;
 };
 
 #endif // TERMINALWIDGET_H
