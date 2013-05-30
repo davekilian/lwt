@@ -15,17 +15,14 @@ TerminalWidget::TerminalWidget(QWidget *parent) :
     a.append("--login");
     a.append("-i");
     m_shell = new Shell("C:\\Program Files (x86)\\Git\\bin\\sh.exe", a);
-    connect(m_shell, SIGNAL(read(QByteArray)), SLOT(onshell(QByteArray)));
-    connect(m_shell, SIGNAL(closed()), SLOT(onshellexit()));
+    connect(m_shell, SIGNAL(read(QByteArray)), SLOT(onShellRead(QByteArray)));
+    connect(m_shell, SIGNAL(closed()), SLOT(onShellExited()));
     m_shell->open();
 }
 
-const QString& TerminalWidget::contents() const
-{
-    return m_contents;
-}
+TerminalWidget::~TerminalWidget() { }
 
-QString &TerminalWidget::contentsRef()
+const QString& TerminalWidget::contents() const
 {
     return m_contents;
 }
@@ -35,7 +32,12 @@ void TerminalWidget::setContents(const QString &val)
     m_contents = val;
 }
 
-void TerminalWidget::onshell(const QByteArray &data)
+QString &TerminalWidget::buffer()
+{
+    return m_contents;
+}
+
+void TerminalWidget::onShellRead(const QByteArray &data)
 {
     m_contents.append(data);
     update();
@@ -90,7 +92,7 @@ void TerminalWidget::paintEvent(QPaintEvent *)
     }
 }
 
-void TerminalWidget::onshellexit()
+void TerminalWidget::onShellExited()
 {
     window()->close();
 }

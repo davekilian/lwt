@@ -1,7 +1,8 @@
 
 # Basic functionality
 
-* Refactor prototype code as necessary
+* Render a cursor
+* Scroll to bottom on input
 * Implement [ASCII character codes](http://en.wikipedia.org/wiki/Control_character)
 
 # Shell Driver
@@ -17,6 +18,11 @@
 * Create an options dialog
 * Create options for picking your shell driver
 * Create options for the shell drivers
+
+# Line Wrap
+
+* Act like Terminal.app -- store the string without line wraps, but wrap the
+  line dynamically when the window is resized.
 
 # Copy / Paste
 

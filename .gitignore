@@ -1,6 +1,13 @@
 
 *.swo
 *.swp
+
 *.pro.user
+
+ui_*.h
+Makefile*
+
 bin/
+debug/
+release/
 

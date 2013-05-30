@@ -14,18 +14,24 @@ class TerminalWidget : public QWidget
 
 public:
     explicit TerminalWidget(QWidget *parent = 0);
+    ~TerminalWidget();
 
+    /** Gets this terminal's entire input history */
     const QString& contents() const;
-    QString &contentsRef();
+
+    /** Sets the termainl's input history to the given string */
     void setContents(const QString &);
+
+    /** Gets a reference to the terminal's input history buffer */
+    QString &buffer();
 
 protected:
     void keyPressEvent(QKeyEvent *);
     void paintEvent(QPaintEvent *);
 
 private slots:
-    void onshell(const QByteArray &data);
-    void onshellexit();
+    void onShellRead(const QByteArray &data);
+    void onShellExited();
 
 private:
     QString m_contents;
