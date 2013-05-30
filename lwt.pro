@@ -12,9 +12,11 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    terminalwidget.cpp
+    terminalwidget.cpp \
+    shell.cpp
 
 HEADERS  += mainwindow.h \
-    terminalwidget.h
+    terminalwidget.h \
+    shell.h
 
 FORMS    += mainwindow.ui

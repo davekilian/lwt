@@ -11,16 +11,13 @@ TerminalWidget::TerminalWidget(QWidget *parent) :
     QWidget(parent)
 {
     // Debug
-    for (int i = 0; i < 20; ++i) {
-        QString line = "";
-
-        int indent = rand() % 20;
-        for (int j = 0; j < indent; ++j)
-            line += ' ';
-
-        line += "all work and no play makes jack a dull boy\n";
-        m_contents.append(line);
-    }
+    QStringList a;
+    a.append("--login");
+    a.append("-i");
+    m_shell = new Shell("C:\\Program Files (x86)\\Git\\bin\\sh.exe", a);
+    connect(m_shell, SIGNAL(read(QByteArray)), SLOT(onshell(QByteArray)));
+    connect(m_shell, SIGNAL(closed()), SLOT(onshellexit()));
+    m_shell->open();
 }
 
 const QString& TerminalWidget::contents() const
@@ -38,7 +35,27 @@ void TerminalWidget::setContents(const QString &val)
     m_contents = val;
 }
 
-void TerminalWidget::paintEvent(QPaintEvent *ev)
+void TerminalWidget::onshell(const QByteArray &data)
+{
+    m_contents.append(data);
+    update();
+}
+
+void TerminalWidget::keyPressEvent(QKeyEvent *ev)
+{
+    QString text = ev->text().replace('\r', '\n');
+    if (text.length() == 0)
+        return;
+
+    // Qt sends EOT instead of newlines when the user hits return
+    for (int i = 0; i < text.length(); ++i)
+        if (text[i] == 4)
+            text[i] = '\n';
+
+    m_shell->write(text);
+}
+
+void TerminalWidget::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
     p.setRenderHints(QPainter::Antialiasing
@@ -71,4 +88,9 @@ void TerminalWidget::paintEvent(QPaintEvent *ev)
         idx = end;
         y += fm.lineSpacing();
     }
+}
+
+void TerminalWidget::onshellexit()
+{
+    window()->close();
 }
