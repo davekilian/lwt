@@ -1,9 +1,20 @@
 #ifndef TERMINALWIDGET_H
 #define TERMINALWIDGET_H
 
+#include "cursor.h"
 #include "shell.h"
 
 #include <QWidget>
+
+// TODO replace this with a configurable theming system
+#define TERMINAL_FONT_FAMILY    "Andale Mono"
+#define TERMINAL_FONT_HEIGHT    12
+#define TERMINAL_BG_R           7
+#define TERMINAL_BG_G           54
+#define TERMINAL_BG_B           66
+#define TERMINAL_FG_R           238
+#define TERMINAL_FG_G           232
+#define TERMINAL_FG_B           213
 
 /** Fills the primary terminal window, rendering terminal output
   * text and accepting user input
@@ -36,6 +47,7 @@ private slots:
 private:
     QString m_contents;
     Shell *m_shell;
+    Cursor m_cursor;
 };
 
 #endif // TERMINALWIDGET_H

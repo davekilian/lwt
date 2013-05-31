@@ -8,7 +8,8 @@
 #include <QPaintEvent>
 
 TerminalWidget::TerminalWidget(QWidget *parent) :
-    QWidget(parent)
+    QWidget(parent),
+    m_cursor(this)
 {
     // Debug
     QStringList a;
@@ -45,6 +46,17 @@ void TerminalWidget::onShellRead(const QByteArray &data)
 
 void TerminalWidget::keyPressEvent(QKeyEvent *ev)
 {
+    // DEBUG Test the cursor
+    if (ev->key() == Qt::Key_Up)
+        m_cursor.moveBy(-1, 0);
+    if (ev->key() == Qt::Key_Down)
+        m_cursor.moveBy( 1, 0);
+    if (ev->key() == Qt::Key_Left)
+        m_cursor.moveBy(0, -1);
+    if (ev->key() == Qt::Key_Right)
+        m_cursor.moveBy(0,  1);
+    update();
+    
     QString text = ev->text().replace('\r', '\n');
     if (text.length() == 0)
         return;
@@ -65,15 +77,14 @@ void TerminalWidget::paintEvent(QPaintEvent *)
                    | QPainter::SmoothPixmapTransform
                    | QPainter::HighQualityAntialiasing);
 
-    QBrush bg(QColor(0, 0, 50));
+    QBrush bg(QColor(TERMINAL_BG_R, TERMINAL_BG_G, TERMINAL_BG_B));
     p.fillRect(0, 0, width(), height(), bg);
 
-    const int FONT_HEIGHT = 11;
-    QFont font("Consolas", FONT_HEIGHT);
+    QFont font(TERMINAL_FONT_FAMILY, TERMINAL_FONT_HEIGHT);
     font.setHintingPreference(QFont::PreferFullHinting);
 
     p.setFont(font);
-    p.setPen(QColor(200, 200, 200));
+    p.setPen(QColor(TERMINAL_FG_R, TERMINAL_FG_G, TERMINAL_FG_B));
 
     QFontMetrics fm(font);
     int y = fm.lineSpacing();
@@ -82,7 +93,10 @@ void TerminalWidget::paintEvent(QPaintEvent *)
     while (idx > -1 && idx < m_contents.length())
     {
         int beg = idx;
-        int end = m_contents.indexOf("\n", beg + 1);
+        if (idx > 0)
+            ++beg;
+
+        int end = m_contents.indexOf("\n", beg);
         if (end < 0) end = m_contents.length();
 
         p.drawText(0, y, m_contents.mid(beg, end - beg));
@@ -90,9 +104,12 @@ void TerminalWidget::paintEvent(QPaintEvent *)
         idx = end;
         y += fm.lineSpacing();
     }
+
+    m_cursor.render(p);
 }
 
 void TerminalWidget::onShellExited()
 {
     window()->close();
 }
+

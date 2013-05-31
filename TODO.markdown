@@ -1,9 +1,13 @@
 
 # Basic functionality
 
-* Render a cursor
+* Move cursor to end on input from shell
+* Blink the cursor
+* Scroll bar support
 * Scroll to bottom on input
 * Implement [ASCII character codes](http://en.wikipedia.org/wiki/Control_character)
+    * [see also](http://en.wikipedia.org/wiki/ASCII#ASCII_control_characters)
+* Send non-textual input to the shell (e.g. arrow keys)
 
 # Shell Driver
 
@@ -18,6 +22,12 @@
 * Create an options dialog
 * Create options for picking your shell driver
 * Create options for the shell drivers
+
+# Infinite Scrollback
+
+* Figure out how to store the input history in a way that makes scrolls though
+  history efficient. For example, we might want to store lines separately so we
+  can easily jump between lines
 
 # Line Wrap
 
