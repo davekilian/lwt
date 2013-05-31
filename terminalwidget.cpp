@@ -41,6 +41,18 @@ QString &TerminalWidget::buffer()
 void TerminalWidget::onShellRead(const QByteArray &data)
 {
     m_contents.append(data);
+
+    // DEBUG move the cursor to the end of input
+    // This eventually needs to be driven by control characters
+    int row = 0, index = -1, next = 0;
+    while ((next = m_contents.indexOf('\n', index + 1)) > -1)
+    {
+        ++row;
+        index = next;
+    }
+    int col = m_contents.length() - 1 - index;
+    m_cursor.moveTo(row, col);
+
     update();
 }
 

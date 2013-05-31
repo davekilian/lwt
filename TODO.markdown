@@ -1,7 +1,6 @@
 
 # Basic functionality
 
-* Move cursor to end on input from shell
 * Blink the cursor
 * Scroll bar support
 * Scroll to bottom on input
