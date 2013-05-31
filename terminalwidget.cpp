@@ -4,13 +4,20 @@
 #include <QColor>
 #include <QFont>
 #include <QFontMetrics>
+#include <QHBoxLayout>
 #include <QPainter>
 #include <QPaintEvent>
 
 TerminalWidget::TerminalWidget(QWidget *parent) :
     QWidget(parent),
-    m_cursor(this)
+    m_cursor(this),
+    m_layout(new QHBoxLayout),
+    m_scrollBar(new QScrollBar)
 {
+    ((QHBoxLayout*)m_layout)->addWidget(m_scrollBar, 0, Qt::AlignRight);
+    m_layout->setContentsMargins(0, 0, 0, 0);
+    setLayout(m_layout);
+
     // Debug
     QStringList a;
     a.append("--login");
@@ -21,7 +28,11 @@ TerminalWidget::TerminalWidget(QWidget *parent) :
     m_shell->open();
 }
 
-TerminalWidget::~TerminalWidget() { }
+TerminalWidget::~TerminalWidget() 
+{ 
+    delete m_scrollBar;
+    delete m_layout;
+}
 
 const QString& TerminalWidget::contents() const
 {

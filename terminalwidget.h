@@ -4,6 +4,8 @@
 #include "cursor.h"
 #include "shell.h"
 
+#include <QLayout>
+#include <QScrollBar>
 #include <QWidget>
 
 // TODO replace this with a configurable theming system
@@ -48,6 +50,9 @@ private:
     QString m_contents;
     Shell *m_shell;
     Cursor m_cursor;
+
+    QLayout *m_layout;
+    QScrollBar *m_scrollBar;
 };
 
 #endif // TERMINALWIDGET_H

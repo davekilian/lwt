@@ -1,11 +1,14 @@
 
 # Basic functionality
 
-* Scroll bar support
-* Scroll to bottom on input
+* Size the scroll bar based on the relative size of the text vs the window
+* Show/hide the scroll bar dynamically
+* Scroll the view when the scroll bar is scrollwed
+* Take the scroll amount into account when drawing the cursor
+* When the shell writes input, scroll to the bottom
 * Implement [ASCII character codes](http://en.wikipedia.org/wiki/Control_character)
     * [see also](http://en.wikipedia.org/wiki/ASCII#ASCII_control_characters)
-* Send non-textual input to the shell (e.g. arrow keys)
+* Send non-textual input to the shell (e.g. arrow keys, signals)
 
 # Shell Driver
 
@@ -30,7 +33,11 @@
 # Line Wrap
 
 * Act like Terminal.app -- store the string without line wraps, but wrap the
-  line dynamically when the window is resized.
+  line dynamically when the window is resized. To make things easier in other
+  places, it might make sense to store two buffers -- the canonical buffer that
+  holds what came from the shell, and the view buffer that has line breaks
+  based on the size of the current window. Then we can do draw calculations
+  using the view buffer.
 
 # Copy / Paste
 
@@ -46,4 +53,14 @@
 * Support control character codes for xterm-256 coloring
 * Support theming
 * Hardcode an attractive default theme
+
+# Shell / Terminal Communication
+
+For things like mouse events. Figure out how this works on UNIX. On Windows,
+we'd need to forward mouse events to the hidden cmd.exe window or something.
+
+# Smarter Scroll Behavior
+
+The user should be able to scroll up somewhere and read the text while the
+shell is spewing text below
 
