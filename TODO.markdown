@@ -1,7 +1,6 @@
 
 # Basic functionality
 
-* Blink the cursor
 * Scroll bar support
 * Scroll to bottom on input
 * Implement [ASCII character codes](http://en.wikipedia.org/wiki/Control_character)

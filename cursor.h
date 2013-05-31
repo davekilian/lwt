@@ -2,6 +2,7 @@
 #define CURSOR_H
 
 #include <QPainter>
+#include <QTimer>
 
 class TerminalWidget;
 
@@ -9,8 +10,10 @@ class TerminalWidget;
  *
  *  Tracks a cursor's location, renders it, and manages blinking logic.
  */
-class Cursor 
+class Cursor : public QObject
 {
+    Q_OBJECT
+
 public:
     Cursor(TerminalWidget *m_parent);
     ~Cursor();
@@ -20,6 +23,24 @@ public:
 
     /** Gets this cursor's current column (i.e. position within the line) */
     int col() const;
+
+    /** Gets or sets the amount of time the cursor is shown when blinking,
+     *  in milliseconds.
+     */
+    int blinkOn() const;
+    void setBlinkOn(int);
+
+    /** Gets or sets the amount of time the cursor is hidden when blinking, in
+      * milliseconds.
+      */
+    int blinkOff() const;
+    void setBlinkOff(int);
+
+    /** Gets or sets the amount of time the cursor remains visible after it is
+     *  moved, in milliseconds
+     */
+    int blinkPause() const;
+    void setBlinkPause(int);
 
     /** Moves this cursor to the given position */
     void moveTo(int row, int col);
@@ -37,14 +58,25 @@ public:
      */
     void render(QPainter &painter);
 
+private slots:
+    void onBlinkTimer();
+
 private:
     TerminalWidget *m_parent;
 
     int m_row;
     int m_col;
-};
 
-// TODO blinking logic
-//      include a QTimer and have some kind of parent notify event
+    bool m_blinkVisible;
+    int m_blinkOn;
+    int m_blinkOff;
+    int m_blinkPause;
+
+    QTimer m_blinkTimer;
+
+    void beginOnBlink();
+    void beginOffBlink();
+    void beginPauseBlink();
+};
 
 #endif // CURSOR_H
