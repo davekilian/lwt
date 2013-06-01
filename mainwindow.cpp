@@ -7,6 +7,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    setMouseTracking(true);
+
     ui->widget->setFocusPolicy(Qt::StrongFocus);
     ui->widget->setFocus();
 }

@@ -125,7 +125,7 @@ void Cursor::render(QPainter &p)
     int w = fm.averageCharWidth(),
         h = fm.lineSpacing(),
         x = m_col * w,
-        y = m_row * h;
+        y = m_row * h - m_parent->scrollAmount();
 
     // Draw the cursor itself
     QBrush fg(QColor(TERMINAL_FG_R, TERMINAL_FG_G, TERMINAL_FG_B));

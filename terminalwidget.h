@@ -38,13 +38,21 @@ public:
     /** Gets a reference to the terminal's input history buffer */
     QString &buffer();
 
+    /** Gets or sets the amount the view has been scrolled, in pixels */
+    int scrollAmount();
+    void setScrollAmount(int);
+
 protected:
     void keyPressEvent(QKeyEvent *);
     void paintEvent(QPaintEvent *);
+    void resizeEvent(QResizeEvent *);
+    void wheelEvent(QWheelEvent *);
 
 private slots:
     void onShellRead(const QByteArray &data);
     void onShellExited();
+
+    void onScroll(int);
 
 private:
     QString m_contents;
@@ -53,6 +61,9 @@ private:
 
     QLayout *m_layout;
     QScrollBar *m_scrollBar;
+
+    void calcScrollbarSize();
+    void scrollToEnd();
 };
 
 #endif // TERMINALWIDGET_H

@@ -7,6 +7,7 @@
 #include <QHBoxLayout>
 #include <QPainter>
 #include <QPaintEvent>
+#include <QWheelEvent>
 
 TerminalWidget::TerminalWidget(QWidget *parent) :
     QWidget(parent),
@@ -17,6 +18,9 @@ TerminalWidget::TerminalWidget(QWidget *parent) :
     ((QHBoxLayout*)m_layout)->addWidget(m_scrollBar, 0, Qt::AlignRight);
     m_layout->setContentsMargins(0, 0, 0, 0);
     setLayout(m_layout);
+
+    m_scrollBar->setTracking(true);
+    connect(m_scrollBar, SIGNAL(sliderMoved(int)), this, SLOT(onScroll(int)));
 
     // Debug
     QStringList a;
@@ -49,9 +53,21 @@ QString &TerminalWidget::buffer()
     return m_contents;
 }
 
+int TerminalWidget::scrollAmount()
+{
+    return m_scrollBar->value();
+}
+
+void TerminalWidget::setScrollAmount(int val)
+{
+    m_scrollBar->setValue(val);
+}
+
 void TerminalWidget::onShellRead(const QByteArray &data)
 {
     m_contents.append(data);
+    calcScrollbarSize();
+    scrollToEnd();
 
     // DEBUG move the cursor to the end of input
     // This eventually needs to be driven by control characters
@@ -110,7 +126,7 @@ void TerminalWidget::paintEvent(QPaintEvent *)
     p.setPen(QColor(TERMINAL_FG_R, TERMINAL_FG_G, TERMINAL_FG_B));
 
     QFontMetrics fm(font);
-    int y = fm.lineSpacing();
+    int y = fm.lineSpacing() - m_scrollBar->value();
     int idx = 0;
 
     while (idx > -1 && idx < m_contents.length())
@@ -131,8 +147,71 @@ void TerminalWidget::paintEvent(QPaintEvent *)
     m_cursor.render(p);
 }
 
+void TerminalWidget::resizeEvent(QResizeEvent *)
+{
+    calcScrollbarSize();
+    update();
+}
+
+void TerminalWidget::wheelEvent(QWheelEvent *we)
+{
+    int delta = 0;
+
+    if (!we->pixelDelta().isNull())
+        delta = we->pixelDelta().y();
+    else
+        delta = we->angleDelta().y() / 120 * m_scrollBar->singleStep();
+
+    setScrollAmount(scrollAmount() - delta);
+    calcScrollbarSize();
+    update();
+}
+
 void TerminalWidget::onShellExited()
 {
     window()->close();
+}
+
+void TerminalWidget::onScroll(int)
+{
+    calcScrollbarSize();
+    update();
+}
+
+void TerminalWidget::calcScrollbarSize()
+{
+    // TODO this should eventually be part of the input history object
+    int nLines = 0;
+    int tmp = -1;
+    while ((tmp = m_contents.indexOf('\n', tmp + 1)) != -1)
+        ++nLines;
+
+    QFont font(TERMINAL_FONT_FAMILY, TERMINAL_FONT_HEIGHT);
+    QFontMetrics fm(font);
+    int contentHeight = nLines * fm.lineSpacing();
+
+    m_scrollBar->setMinimum(0);
+    m_scrollBar->setMaximum(contentHeight);
+    m_scrollBar->setPageStep(height());
+    m_scrollBar->setSingleStep(fm.lineSpacing());
+
+    m_scrollBar->setVisible(contentHeight > height());
+}
+
+void TerminalWidget::scrollToEnd()
+{
+    // TODO this should eventually be part of the input history object
+    int nLines = 0;
+    int tmp = -1;
+    while ((tmp = m_contents.indexOf('\n', tmp + 1)) != -1)
+        ++nLines;
+
+    QFont font(TERMINAL_FONT_FAMILY, TERMINAL_FONT_HEIGHT);
+    QFontMetrics fm(font);
+    int contentHeight = nLines * fm.lineSpacing();
+
+    int minValue = contentHeight - height() + 3 * fm.lineSpacing();
+    if (scrollAmount() < minValue)
+        setScrollAmount(minValue);
 }
 

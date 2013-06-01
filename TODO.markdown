@@ -1,11 +1,6 @@
 
 # Basic functionality
 
-* Size the scroll bar based on the relative size of the text vs the window
-* Show/hide the scroll bar dynamically
-* Scroll the view when the scroll bar is scrollwed
-* Take the scroll amount into account when drawing the cursor
-* When the shell writes input, scroll to the bottom
 * Implement [ASCII character codes](http://en.wikipedia.org/wiki/Control_character)
     * [see also](http://en.wikipedia.org/wiki/ASCII#ASCII_control_characters)
 * Send non-textual input to the shell (e.g. arrow keys, signals)
