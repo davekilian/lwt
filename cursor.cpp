@@ -104,6 +104,9 @@ static int indexOf(int row, int col, const QString &str)
     if (row > 0)
         ++index;    // Skip the leading newline
 
+    if (index + col >= str.length())
+        return -1;  // Cursor past end of buffer
+
     return index + col;
 }
 

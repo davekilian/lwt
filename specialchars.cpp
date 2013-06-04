@@ -1,7 +1,6 @@
 
 #include "specialchars.h"
 
-
 // The ASCII Control Characters
 // http://en.wikipedia.org/wiki/ASCII#ASCII_control_characters
 
@@ -63,15 +62,190 @@
 #define ANSI_SCP        's'     // Save Cursor Position
 #define ANSI_RCP        'u'     // Restore Cursor Position
 
+#define DECTCEM_HIC     'l'     // Hide Cursor
+#define DECTCEM_SHC     'h'     // Show Cursor
+
+
+// OS Control Sequences defined by xterm
+// http://www.xfree86.org/current/ctlseqs.html
+
+#define XTERM_CNW       0       // Change Icon Name and Window Title
+#define XTERM_CIN       1       // Change Icon Name
+#define XTERM_CWT       2       // Change Window Title
+#define XTERM_SXP       3       // Set X Property
+#define XTERM_CCN       4       // Change Color Number
+
 
 SpecialChars::SpecialChars() { }
 
 SpecialChars::~SpecialChars() { }
 
-bool SpecialChars::eat(QString *)
+bool SpecialChars::eat(QString *str)
 {
-    // TODO - define signals in specialchars.h
-    // TODO - parse the first character and proceed from there
-    return false;
+    QChar c = (*str)[0];
+
+    switch (c.toLatin1())
+    {
+        case ASCII_BEL:
+            emit bell();
+            *str = str->right(str->length() - 1);
+            return true;
+
+        case ASCII_BS:
+            emit backspace();
+            *str = str->right(str->length() - 1);
+            return true;
+
+        case ASCII_CR:
+            emit carriageReturn();
+            *str = str->right(str->length() - 1);
+            return true;
+
+        case ASCII_DEL:
+            emit del();
+            *str = str->right(str->length() - 1);
+            return true;
+
+        case ASCII_FF:
+            emit formFeed();
+            *str = str->right(str->length() - 1);
+            return true;
+
+        case ASCII_HT:
+            emit horizontalTab();
+            *str = str->right(str->length() - 1);
+            return true;
+
+        case ASCII_VT:
+            emit verticalTab();
+            *str = str->right(str->length() - 1);
+            return true;
+
+        case ASCII_ESC:
+        {
+            char cmd;
+            QString args;
+
+            if (parseAnsi(str, &cmd, &args))
+            {
+                /* TODO raise signal
+                void erase(EraseType type);
+                void moveCursorBy(int rowDelta, int colDelta);
+                void moveCursorTo(int row, int col);
+                void reportCursorPosition();
+                void popCursorPosition();
+                void pushCursorPosition();
+                void scroll(int npages);
+                void setColor(Color c, bool bright, bool foreground);
+                void setColor256(int index, bool foreground);
+                void setCursorVisible(bool visible);
+                 */
+            }
+            else if (parseXterm(str, &cmd, &args))
+            {
+                switch (cmd)
+                {
+                    case XTERM_CNW:
+                    case XTERM_CIN:
+                    case XTERM_CWT:
+                        emit setWindowTitle(args);
+                        return true;
+
+                    case XTERM_CCN:
+                        // TODO xterm change color number
+                        return true;
+
+                    default:
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        default:
+            return false;
+    }
+
+    return true;
+}
+
+bool SpecialChars::parseAnsi(QString *str, char *cmd, QString *args)
+{
+    char next = (*str)[1].toLatin1();
+    if (next == '[')
+    {
+        // Multi-character sequence
+        int i = 2;
+        next = (*str)[i].toLatin1();
+        while (next < '@' || next > '~')
+        {
+            args->append(next);
+            ++i;
+            next = (*str)[i].toLatin1();
+        }
+
+        *cmd = next;
+        *str = str->right(str->length() - i - 1);
+
+        return true;
+    }
+    else if (next == ']')
+    {
+        // xterm control sequence -- don't parse here
+        return false;
+    }
+    else if (next >= '@' && next <= '_')
+    {
+        // Single-character sequence
+        *cmd = next;
+        *str = str->right(str->length() - 2);
+
+        return true;
+    }
+    else
+    {
+        // Don't know how to parse this
+        return false;
+    }
+}
+
+bool SpecialChars::parseXterm(QString *str, char *cmd, QString *args)
+{
+    // Make sure this is an Operating System Control sequence
+    char next = (*str)[1].toLatin1();
+    if (next != ']')
+    {
+        return false;
+    }
+
+    // Parse the command ID
+    int i = 2;
+    QString cmdstr;
+    while ((next = (*str)[i].toLatin1()) != ';')
+    {
+        cmdstr.append(next);
+        ++i;
+    }
+
+    bool ok = false;
+    *cmd = cmdstr.toInt(&ok);
+    if (!ok)
+    {
+        return false;
+    }
+
+    // Parse the arguments
+    ++i; // Skip over the semicolon
+    while ((next = (*str)[i].toLatin1()) != ASCII_STX && next != ASCII_BEL)
+    {
+        args->append(next);
+        ++i;
+    }
+
+    // Truncate the input string
+    *str = str->right(str->length() - i - 1);
+
+    return true;
 }
 

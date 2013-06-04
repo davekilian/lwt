@@ -3,6 +3,7 @@
 
 #include "cursor.h"
 #include "shell.h"
+#include "specialchars.h"
 
 #include <QLayout>
 #include <QScrollBar>
@@ -58,6 +59,7 @@ private:
     QString m_contents;
     Shell *m_shell;
     Cursor m_cursor;
+    SpecialChars m_chars;
 
     QLayout *m_layout;
     QScrollBar *m_scrollBar;

@@ -65,7 +65,51 @@ void TerminalWidget::setScrollAmount(int val)
 
 void TerminalWidget::onShellRead(const QByteArray &data)
 {
-    m_contents.append(data);
+    QString input(data);
+    while (input.length() > 0)
+    {
+        if (!m_chars.eat(&input))
+        {
+            m_contents.append(input[0]);
+            input = input.right(input.length() - 1);
+        }
+    }
+
+    /*
+    static int totalWritten = 0;
+    QString input(data);
+    while (input.length() > 0)
+    {
+        m_contents.append(input[0]);
+        ++totalWritten;
+        input = input.right(input.length() - 1);
+    }
+
+    /* TODO the above raises a system exception only on the debug build
+       Whyyyyyyy
+       It's totally find if we just .append(data)
+       This code isn't even choking on a non-printable character T__T
+       And the crash completely hoses the debugger, requiring a Qt Creator
+        restart T____T
+       Works fine if I step through it. Side effect below or race condition?
+
+       Oh joy. It predictably crashes after the Shell::onstderr() handler
+        returns. Oh boyyy binary search debugging go
+
+       It seems there's only a problem if we append characters to m_contents.
+       If you just append newlines, though, the thing freezes (eep)
+
+       wattt this is coming from the cursor position calculation? T__T
+       m_cursor.moveTo does it? T___T
+
+       removing the call to m_cursor.render prevents the crash.
+       the row and col we're moving to seems to make sense ...
+
+       oh for christ's sake, cursor.cpp!indexOf has been broken all along
+    */
+
+    //m_contents.append(data);
+
     calcScrollbarSize();
     scrollToEnd();
 
