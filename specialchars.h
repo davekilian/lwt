@@ -2,6 +2,7 @@
 #define SPECIALCHARS_H
 
 #include <QObject>
+#include <QVector>
 
 /** Utility for recognizing and removing ASCII control codes and ANSI escape
  *  sequences from an input stream. This utility only recognizes special
@@ -27,14 +28,48 @@ class SpecialChars : public QObject
     Q_OBJECT
 
 public:
+    /** Behaviors that can be passed via the erase() signal */
     enum EraseType
     {
-        TODO,
+        /** Erase the data under and after the cursor, all the way to the end
+         *  of the visible region of the screen.
+         */
+        ERASE_SCREEN_AFTER  = 0,
+
+        /** Erase the data from the beginning of the screen to before the
+         *  cursor (but not including the data under the cursor)
+         */
+        ERASE_SCREEN_BEFORE = 1,
+
+        /** Erase the entire screen */
+        ERASE_SCREEN        = 2,
+
+        /** Erase the data under and after the cursor, all the way to the end
+         *  of the end of the line.
+         */
+        ERASE_LINE_AFTER    = 3,
+
+        /** Erase the data from the beginning of the current line to before the
+         *  cursor (but not including the data under the cursor)
+         */
+        ERASE_LINE_BEFORE   = 4,
+
+        /** Erase the entire line */
+        ERASE_LINE          = 5,
     };
 
     enum Color
     {
-        ALSO_TODO,
+        BLACK   = 0,
+        RED     = 1,
+        GREEN   = 2,
+        YELLOW  = 3,
+        BLUE    = 4,
+        MAGENTA = 5,
+        CYAN    = 6,
+        WHITE   = 7,
+
+        DEFAULT = 9,
     };
 
     SpecialChars();
@@ -105,6 +140,9 @@ signals:
     /** Store the cursor's current position on a stack */
     void pushCursorPosition();
 
+    /** Sets the terminal colors back to the default */
+    void resetColors();
+
     /** Scroll down by the given number of pages.
      *  If npages is negative, scroll up by that many pages
      */
@@ -153,6 +191,9 @@ private:
      *  @param args Receives the command arguments
      */
     bool parseXterm(QString *str, char *cmd, QString *args);
+
+    /** Triggers setColor and setColor256 events for ASCII SGR codes */
+    void handleSGR(QVector<int> args);
 };
 
 #endif // SPECIALCHARS_H

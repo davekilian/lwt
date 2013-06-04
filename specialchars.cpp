@@ -1,6 +1,9 @@
 
 #include "specialchars.h"
 
+#include <QStringList>
+#include <QVector>
+
 // The ASCII Control Characters
 // http://en.wikipedia.org/wiki/ASCII#ASCII_control_characters
 
@@ -55,7 +58,7 @@
 #define ANSI_ED         'J'     // Erase Data
 #define ANSI_EL         'K'     // Erase in Line
 #define ANSI_SU         'S'     // Scroll Up
-#define ANSI_ST         'T'     // Scroll Down
+#define ANSI_SD         'T'     // Scroll Down
 #define ANSI_HVP        'f'     // Horizontal and Vertical Position
 #define ANSI_SGR        'm'     // Select Graphic Rendition
 #define ANSI_DSR        'n'     // Device Status Report
@@ -128,18 +131,102 @@ bool SpecialChars::eat(QString *str)
 
             if (parseAnsi(str, &cmd, &args))
             {
-                /* TODO raise signal
-                void erase(EraseType type);
-                void moveCursorBy(int rowDelta, int colDelta);
-                void moveCursorTo(int row, int col);
-                void reportCursorPosition();
-                void popCursorPosition();
-                void pushCursorPosition();
-                void scroll(int npages);
-                void setColor(Color c, bool bright, bool foreground);
-                void setColor256(int index, bool foreground);
-                void setCursorVisible(bool visible);
-                 */
+                // Convert the args string to a list of integers,
+                // since most commands require integer arguments.
+                // Convenient for the case statements below
+                QVector<int> intargs;
+                QStringList parts = args.split(';');
+                foreach (QString part, parts)
+                {
+                    bool ok = false;
+                    int val = part.toInt(&ok);
+                    if (ok)
+                        intargs.append(val);
+                    else
+                        intargs.append(0xFFFFFFFF);
+                }
+
+                switch (cmd)
+                {
+                    case ANSI_CUU:
+                        emit moveCursorBy(-intargs.value(0, 1), 0);
+                        return true;
+
+                    case ANSI_CUD:
+                        emit moveCursorBy(intargs.value(0, 1), 0);
+                        return true;
+
+                    case ANSI_CUF:
+                        emit moveCursorBy(0, intargs.value(0, 1));
+                        return true;
+
+                    case ANSI_CUB:
+                        emit moveCursorBy(0, -intargs.value(0, 1));
+                        return true;
+
+                    case ANSI_CNL:
+                        emit moveCursorBy(intargs.value(0, 1), 0);
+                        emit moveCursorTo(-1, 0);
+                        return true;
+
+                    case ANSI_CPL:
+                        emit moveCursorBy(-intargs.value(0, 1), 0);
+                        emit moveCursorTo(-1, 0);
+                        return true;
+
+                    case ANSI_CHA:
+                        emit moveCursorTo(-1, intargs.value(0, 0));
+                        return true;
+
+                    case ANSI_CUP:
+                    case ANSI_HVP:
+                        emit moveCursorTo(intargs.value(0, 0) + 1,
+                                          intargs.value(1, 0) + 1);
+                        return true;
+
+                    case ANSI_ED:
+                        emit erase((EraseType)intargs.value(0, 0));
+                        return true;
+
+                    case ANSI_EL:
+                        emit erase((EraseType)(intargs.value(0, 0) + 3));
+                        return true;
+
+                    case ANSI_SU:
+                        emit scroll(-intargs.value(0, 1));
+                        return true;
+
+                    case ANSI_SD:
+                        emit scroll(intargs.value(0, 1));
+                        return true;
+
+                    case ANSI_SGR:
+                        handleSGR(intargs);
+                        return true;
+
+                    case ANSI_DSR:
+                        emit reportCursorPosition();
+                        return true;
+
+                    case ANSI_SCP:
+                        emit pushCursorPosition();
+                        return true;
+
+                    case ANSI_RCP:
+                        emit popCursorPosition();
+                        return true;
+
+                    case DECTCEM_HIC:
+                        emit setCursorVisible(false);
+                        return true;
+
+                    case DECTCEM_SHC:
+                        emit setCursorVisible(true);
+                        return true;
+
+                    default:
+                        return false;
+                }
             }
             else if (parseXterm(str, &cmd, &args))
             {
@@ -149,10 +236,6 @@ bool SpecialChars::eat(QString *str)
                     case XTERM_CIN:
                     case XTERM_CWT:
                         emit setWindowTitle(args);
-                        return true;
-
-                    case XTERM_CCN:
-                        // TODO xterm change color number
                         return true;
 
                     default:
@@ -247,5 +330,80 @@ bool SpecialChars::parseXterm(QString *str, char *cmd, QString *args)
     *str = str->right(str->length() - i - 1);
 
     return true;
+}
+
+void SpecialChars::handleSGR(QVector<int> args)
+{
+    // Check if colors need to be reset
+    foreach (int arg, args)
+    {
+        if (arg == 0)
+        {
+            emit resetColors();
+            break;
+        }
+    }
+
+    // Check if the color needs to be bright
+    bool bright = false;
+    foreach (int arg, args)
+    {
+        if (arg == 1)
+        {
+            bright = true;
+            break;
+        }
+    }
+
+    // Check for a color to switch to
+    bool haveColor = false;
+    Color color = DEFAULT;
+    bool foreground = true;
+
+    foreach (int arg, args)
+    {
+        if (arg >= 30 && arg <= 39 && arg != 38)
+        {
+            haveColor = true;
+            foreground = true;
+            color = (Color)(arg - 30);
+
+            break;
+        }
+
+        if (arg >= 40 && arg <= 49 && arg != 48)
+        {
+            haveColor = true;
+            foreground = false;
+            color = (Color)(arg - 40);
+
+            break;
+        }
+    }
+
+    // If there's a color to switch to, switch
+    if (haveColor)
+    {
+        emit setColor(color, bright, foreground);
+    }
+
+    // Otherwise check for any xterm-256 commands
+    else
+    {
+        for (int i = 0; i < args.size(); ++i)
+        {
+            int cmd = args[i];
+
+            if (cmd == 38 || cmd == 48)
+            {
+                bool foreground = (cmd == 38);
+
+                if (i + 2 < args.size() && args[i + 1] == 5)
+                {
+                    emit setColor256(args[i + 2], foreground);
+                }
+            }
+        }
+    }
 }
 
