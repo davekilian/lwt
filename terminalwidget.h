@@ -55,6 +55,20 @@ private slots:
 
     void onScroll(int);
 
+    void doBell();
+    void doBackspace();
+    void doCarriageReturn();
+    void doDel();
+    void doErase(SpecialChars::EraseType);
+    void doFormFeed();
+    void doHorizontalTab();
+    void doMoveCursorBy(int rowDelta, int colDelta);
+    void doMoveCursorTo(int row, int col);
+    void doScroll(int npages);
+    void doSetCursorVisible(bool visible);
+    void doSetWindowTitle(const QString &title);
+    void doVerticalTab();
+
 private:
     QString m_contents;
     Shell *m_shell;

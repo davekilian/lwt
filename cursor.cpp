@@ -6,13 +6,15 @@ Cursor::Cursor(TerminalWidget *parent)
     : m_parent(parent),
       m_row(0),
       m_col(0),
+      m_hidden(false),
       m_blinkVisible(true),
-      m_blinkOn(750),
-      m_blinkOff(750),
+      m_blinkOn(500),
+      m_blinkOff(500),
       m_blinkPause(1000)
 { 
     m_blinkTimer.setSingleShot(true);
-    connect(&m_blinkTimer, SIGNAL(timeout()), this, SLOT(onBlinkTimer()));
+    connect(&m_blinkTimer, SIGNAL(timeout()), SLOT(onBlinkTimer()));
+    connect(&m_hideTimer, SIGNAL(timeout()), SLOT(onHideTimer()));
 
     beginOnBlink();
 }
@@ -27,6 +29,21 @@ int Cursor::row() const
 int Cursor::col() const
 {
     return m_col;
+}
+
+void Cursor::show()
+{
+    m_hidden = false;
+    m_parent->update();
+}
+
+void Cursor::hide(int ms)
+{
+    m_hidden = true;
+    m_parent->update();
+
+    m_hideTimer.setSingleShot(true);
+    m_hideTimer.start(ms);
 }
 
 int Cursor::blinkOn() const
@@ -112,8 +129,8 @@ static int indexOf(int row, int col, const QString &str)
 
 void Cursor::render(QPainter &p)
 {
-    // Do nothing if the cursor currently isn't blinking
-    if (!m_blinkVisible)
+    // Do nothing if the cursor currently isn't visible
+    if (m_hidden || !m_blinkVisible)
         return;
 
     // Find the character under the cursor
@@ -146,6 +163,11 @@ void Cursor::onBlinkTimer()
         beginOffBlink();
     else
         beginOnBlink();
+}
+
+void Cursor::onHideTimer()
+{
+    show();
 }
 
 void Cursor::beginOnBlink()

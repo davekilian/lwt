@@ -109,7 +109,7 @@ signals:
     void del();
 
     /** Clear some part of the screen. See EraseType for specific behaviors */
-    void erase(EraseType type);
+    void erase(SpecialChars::EraseType type);
 
     /** Clear the screen */
     void formFeed();
@@ -168,7 +168,7 @@ signals:
     void setCursorVisible(bool visible);
 
     /** Set the title of the terminal's window or tab */
-    void setWindowTitle(QString title);
+    void setWindowTitle(const QString &title);
 
     /** Add several newlines */
     void verticalTab();

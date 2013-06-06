@@ -24,6 +24,16 @@ public:
     /** Gets this cursor's current column (i.e. position within the line) */
     int col() const;
 
+    /** Hides this cursor.
+     *
+     *  If a time is given, the cursor is shown after the given number of
+     *  milliseconds has elapsed.
+     */
+    void hide(int ms = 500);
+
+    /** Shows the cursor, cancelling a previous hide() operation */
+    void show();
+
     /** Gets or sets the amount of time the cursor is shown when blinking,
      *  in milliseconds.
      */
@@ -60,12 +70,16 @@ public:
 
 private slots:
     void onBlinkTimer();
+    void onHideTimer();
 
 private:
     TerminalWidget *m_parent;
 
     int m_row;
     int m_col;
+
+    bool m_hidden;
+    QTimer m_hideTimer;
 
     bool m_blinkVisible;
     int m_blinkOn;
