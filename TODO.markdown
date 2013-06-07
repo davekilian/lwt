@@ -107,6 +107,20 @@ them.
 * Create options for picking your shell driver
 * Create options for the shell drivers
 
+# Option to handle Ctrl+L / Ctrl+D natively
+
+When enabled, lwt eats Ctrl+L and Ctrl+D events and does the following:
+
+* For Ctrl+L events, the console computes what's visible on the current line,
+  clears the screen, redraws the current line, and moves the cursor to where it
+  should be. The shell never sees any input. This gives you bash-like Ctrl+L
+  when you're using cmd.exe
+
+* For Ctrl+D events, the console recalls whether or not input has been sent
+  since the last newline. If yes, this just sends a newline to complete the
+  command, regardless of cursor position. If no, this kills the shell and
+  closes the terminal.
+
 # Copy / Paste
 
 * Ability to highlight text with the mouse cursor
