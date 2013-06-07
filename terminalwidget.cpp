@@ -111,7 +111,7 @@ void TerminalWidget::onShellRead(const QByteArray &data)
     int col = m_contents.length() - 1 - index;
     m_cursor.moveTo(row, col);
 
-    update();
+    repaint();
 }
 
 void TerminalWidget::keyPressEvent(QKeyEvent *ev)

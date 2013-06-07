@@ -59,12 +59,17 @@ line dynamically when the window is resized.
 It takes about half a second for the terminal to print a character that was
 just typed. What's going on? Probably lags due to Qt's event loops.
 
+* There could be latency between pressing a key and getting the event for it
+  (before the key is sent to the shell)
 * There could be latency between the process writing text and the signal making
   it through the event queue
 * There could be latency between receiving text and the update() event making
   it through the event queue
 
 See if there's some way we can poll the QProcess manually on a watchdog thread
+
+Update: Removed the third item by calling repaint instead of update. Already a
+small improvement :)
 
 # Input Race Condition
 
