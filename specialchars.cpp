@@ -407,3 +407,33 @@ void SpecialChars::handleSGR(QVector<int> args)
     }
 }
 
+// http://unix.stackexchange.com/questions/16530/what-does-raw-unraw-keyboard-mode-mean
+QString SpecialChars::translate(QKeyEvent *ev)
+{
+    QString ret = ev->text();
+
+    // Add ANSI escape sequences for special keys
+    QList<char> commands;
+    
+    if ((ev->key() & Qt::Key_Up) == Qt::Key_Up)
+        commands.append(ANSI_CUU);
+
+    if ((ev->key() & Qt::Key_Down) == Qt::Key_Down)
+        commands.append(ANSI_CUD);
+
+    if ((ev->key() & Qt::Key_Left) == Qt::Key_Left)
+        commands.append(ANSI_CUB);
+
+    if ((ev->key() & Qt::Key_Right) == Qt::Key_Right)
+        commands.append(ANSI_CUF);
+
+    foreach (char command, commands)
+    {
+        ret.append(ASCII_ESC);
+        ret.append('[');
+        ret.append(command);
+    }
+
+    return ret;
+}
+

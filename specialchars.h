@@ -1,6 +1,7 @@
 #ifndef SPECIALCHARS_H
 #define SPECIALCHARS_H
 
+#include <QKeyEvent>
 #include <QObject>
 #include <QVector>
 
@@ -91,6 +92,11 @@ public:
      *  @return     A boolean indicating whether a sequence was removed.
      */
     bool eat(QString *str);
+
+    /** Returns a string containing scancodes for any special keys containing
+     *  in the given key event
+     */
+    QString translate(QKeyEvent *ev);
 
 signals:
 

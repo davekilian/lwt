@@ -116,27 +116,7 @@ void TerminalWidget::onShellRead(const QByteArray &data)
 
 void TerminalWidget::keyPressEvent(QKeyEvent *ev)
 {
-    // DEBUG Test the cursor
-    if (ev->key() == Qt::Key_Up)
-        m_cursor.moveBy(-1, 0);
-    if (ev->key() == Qt::Key_Down)
-        m_cursor.moveBy( 1, 0);
-    if (ev->key() == Qt::Key_Left)
-        m_cursor.moveBy(0, -1);
-    if (ev->key() == Qt::Key_Right)
-        m_cursor.moveBy(0,  1);
-    update();
-    
-    QString text = ev->text().replace('\r', '\n');
-    if (text.length() == 0)
-        return;
-
-    // Qt sends EOT instead of newlines when the user hits return
-    for (int i = 0; i < text.length(); ++i)
-        if (text[i] == 4)
-            text[i] = '\n';
-
-    m_shell->write(text);
+    m_shell->write(m_chars.translate(ev));
 }
 
 void TerminalWidget::paintEvent(QPaintEvent *)
