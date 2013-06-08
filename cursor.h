@@ -52,12 +52,6 @@ public:
     int blinkPause() const;
     void setBlinkPause(int);
 
-    /** Moves this cursor to the given position */
-    void moveTo(int row, int col);
-
-    /** Moves this cursor by the given amount */
-    void moveBy(int rowDelta, int colDelta);
-
     /** Renders this cursor
      *
      *  If the cursor is currently in the 'off' stage of the blink cycle, this
@@ -67,6 +61,13 @@ public:
      *  @param painter  The painter to use to draw the cursor
      */
     void render(QPainter &painter);
+
+public slots:
+    /** Moves this cursor to the given position */
+    void moveTo(int row, int col);
+
+    /** Moves this cursor by the given amount */
+    void moveBy(int rowDelta, int colDelta);
 
 private slots:
     void onBlinkTimer();

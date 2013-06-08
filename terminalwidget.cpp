@@ -26,23 +26,16 @@ TerminalWidget::TerminalWidget(QWidget *parent) :
 
     // Set up handlers for escape sequences received from the shell
     connect(&m_chars, SIGNAL(bell()), SLOT(doBell()));
-    connect(&m_chars, SIGNAL(backspace()), SLOT(doBackspace()));
-    connect(&m_chars, SIGNAL(carriageReturn()), SLOT(doCarriageReturn()));
-    connect(&m_chars, SIGNAL(del()), SLOT(doDel()));
-    connect(&m_chars, SIGNAL(erase(SpecialChars::EraseType)),
-                      SLOT(doErase(SpecialChars::EraseType)));
-    connect(&m_chars, SIGNAL(formFeed()), SLOT(doFormFeed()));
-    connect(&m_chars, SIGNAL(horizontalTab()), SLOT(doHorizontalTab()));
-    connect(&m_chars, SIGNAL(moveCursorBy(int, int)), 
-                      SLOT(doMoveCursorBy(int, int)));
-    connect(&m_chars, SIGNAL(moveCursorTo(int, int)), 
-                      SLOT(doMoveCursorTo(int, int)));
-    connect(&m_chars, SIGNAL(scroll(int)), SLOT(doScroll(int)));
     connect(&m_chars, SIGNAL(setCursorVisible(bool)),
                       SLOT(doSetCursorVisible(bool)));
     connect(&m_chars, SIGNAL(setWindowTitle(const QString&)), 
                       SLOT(doSetWindowTitle(const QString&)));
-    connect(&m_chars, SIGNAL(verticalTab()), SLOT(doVerticalTab()));
+
+    // Set up handlers for history events
+    connect(&m_history, SIGNAL(cursorMoved(int, int)),
+            &m_cursor,  SLOT(moveTo(int, int)));
+    connect(&m_history, SIGNAL(updated()),
+                        SLOT(update()));
 
     // Debug
     QStringList a;
@@ -60,19 +53,9 @@ TerminalWidget::~TerminalWidget()
     delete m_layout;
 }
 
-const QString& TerminalWidget::contents() const
+const History& TerminalWidget::history() const
 {
-    return m_contents;
-}
-
-void TerminalWidget::setContents(const QString &val)
-{
-    m_contents = val;
-}
-
-QString &TerminalWidget::buffer()
-{
-    return m_contents;
+    return m_history;
 }
 
 int TerminalWidget::scrollAmount()
@@ -87,31 +70,22 @@ void TerminalWidget::setScrollAmount(int val)
 
 void TerminalWidget::onShellRead(const QByteArray &data)
 {
+    m_history.beginInsert();
+
     QString input(data);
     while (input.length() > 0)
     {
         if (!m_chars.eat(&input))
         {
-            m_contents.append(input[0]);
+            m_history.insert(input[0]);
             input = input.right(input.length() - 1);
         }
     }
 
+    m_history.endInsert();
+
     calcScrollbarSize();
     scrollToEnd();
-
-    // DEBUG move the cursor to the end of input
-    // This eventually needs to be driven by control characters
-    int row = 0, index = -1, next = 0;
-    while ((next = m_contents.indexOf('\n', index + 1)) > -1)
-    {
-        ++row;
-        index = next;
-    }
-    int col = m_contents.length() - 1 - index;
-    m_cursor.moveTo(row, col);
-
-    repaint();
 }
 
 void TerminalWidget::keyPressEvent(QKeyEvent *ev)
@@ -137,21 +111,14 @@ void TerminalWidget::paintEvent(QPaintEvent *)
     p.setPen(QColor(TERMINAL_FG_R, TERMINAL_FG_G, TERMINAL_FG_B));
 
     QFontMetrics fm(font);
-    int y = fm.lineSpacing() - m_scrollBar->value();
-    int idx = 0;
+    QStringList lines = m_history.visibleLines(m_scrollBar->value(),
+                                               m_scrollBar->value() + height(),
+                                               fm.lineSpacing());
 
-    while (idx > -1 && idx < m_contents.length())
+    int y = fm.lineSpacing() - (m_scrollBar->value() % fm.lineSpacing());
+    foreach (const QString &line, lines)
     {
-        int beg = idx;
-        if (idx > 0)
-            ++beg;
-
-        int end = m_contents.indexOf("\n", beg);
-        if (end < 0) end = m_contents.length();
-
-        p.drawText(0, y, m_contents.mid(beg, end - beg));
-
-        idx = end;
+        p.drawText(0, y, line);
         y += fm.lineSpacing();
     }
 
@@ -160,6 +127,7 @@ void TerminalWidget::paintEvent(QPaintEvent *)
 
 void TerminalWidget::resizeEvent(QResizeEvent *)
 {
+    m_history.onViewportResized(width(), height());
     calcScrollbarSize();
     update();
 }
@@ -193,14 +161,10 @@ void TerminalWidget::onScroll(int)
 
 void TerminalWidget::calcScrollbarSize()
 {
-    // TODO this should eventually be part of the input history object
-    int nLines = 0;
-    int tmp = -1;
-    while ((tmp = m_contents.indexOf('\n', tmp + 1)) != -1)
-        ++nLines;
-
     QFont font(TERMINAL_FONT_FAMILY, TERMINAL_FONT_HEIGHT);
     QFontMetrics fm(font);
+
+    int nLines = m_history.numLines();
     int contentHeight = nLines * fm.lineSpacing();
 
     m_scrollBar->setMinimum(0);
@@ -213,14 +177,10 @@ void TerminalWidget::calcScrollbarSize()
 
 void TerminalWidget::scrollToEnd()
 {
-    // TODO this should eventually be part of the input history object
-    int nLines = 0;
-    int tmp = -1;
-    while ((tmp = m_contents.indexOf('\n', tmp + 1)) != -1)
-        ++nLines;
-
     QFont font(TERMINAL_FONT_FAMILY, TERMINAL_FONT_HEIGHT);
     QFontMetrics fm(font);
+
+    int nLines = m_history.numLines();
     int contentHeight = nLines * fm.lineSpacing();
 
     int minValue = contentHeight - height() + 3 * fm.lineSpacing();
@@ -238,119 +198,6 @@ void TerminalWidget::doBell()
     // alert sound in Qt then...
 }
 
-void TerminalWidget::doBackspace()
-{
-    // TODO once we implement the real input history object, forward this to
-    // the object. This is clearly incorrect once the cursor moves at all :P
-
-    m_contents = m_contents.left(m_contents.length() - 1);
-    m_cursor.moveBy(0, -1);
-    update();
-}
-
-void TerminalWidget::doCarriageReturn()
-{
-    doMoveCursorBy(0, -m_cursor.col());
-}
-
-void TerminalWidget::doDel()
-{
-    // TODO lol this is totally wrong, but we probably can't do anything more
-    // until we have a history object with an arbitrary write pointer
-    doBackspace();
-}
-
-void TerminalWidget::doErase(SpecialChars::EraseType)
-{
-    // TODO this is complicated if we want to act like gnome-terminal and not
-    // cmd.exe (i.e. adding lines instead of permanently deleting the data)
-    // Basically we need to measure stuff, call doScroll, and then replace some
-    // of the text unless EraseType is ALL
-    //
-    // For now though ...
-    doFormFeed();
-}
-
-void TerminalWidget::doFormFeed()
-{
-    doScroll(1);
-}
-
-void TerminalWidget::doHorizontalTab()
-{
-    // To implement horizontal tabs, it'd be sufficient to just append a \t
-    // character here. Instead, we manually convert the tab to spaces to keep
-    // the invariant that every character in the input buffer occupies exactly
-    // one cell on the screen.
-
-    // Get the last line
-    // TODO this should be part of the input buffer object
-    int beg = m_contents.lastIndexOf("\n") + 1;
-    QString line = m_contents.right(m_contents.length() - beg);
-    
-    // Compute number of spaces to add
-    int SPACES_PER_TAB = 8;
-    int nspaces = SPACES_PER_TAB - (line.length() % SPACES_PER_TAB);
-
-    // Add the spaces
-    QString spaces;
-    for (int i = 0; i < nspaces; ++i)
-        spaces.append(' ');
-    onShellRead(spaces.toUtf8());
-}
-
-void TerminalWidget::doMoveCursorBy(int rowDelta, int colDelta)
-{
-    if (rowDelta < -m_cursor.row())
-        rowDelta = -m_cursor.row();
-
-    if (colDelta < -m_cursor.col())
-        colDelta = -m_cursor.col();
-
-    m_cursor.moveBy(rowDelta, colDelta);
-    update();
-
-    // TODO once we implement the real input history object,
-    //      this callback needs to set the write pointer.
-    //
-    //      in fact, it'd make sense for this method to just
-    //      set the write position in the history buffer, and 
-    //      have the history buffer raise a signal that actually
-    //      moves the cursor
-}
-
-void TerminalWidget::doMoveCursorTo(int row, int col)
-{
-    if (row < 0)
-        row = 0;
-    if (col < 0)
-        col = 0;
-
-    m_cursor.moveTo(row, col);
-    update();
-
-    // TODO see the note in doMoveCursorBy()
-}
-
-void TerminalWidget::doScroll(int npages)
-{
-    QFont font(TERMINAL_FONT_FAMILY, TERMINAL_FONT_HEIGHT);
-    QFontMetrics fm(font);
-
-    int linesPerPage = height() / fm.lineSpacing() + 1;
-
-    int totalLines = linesPerPage * npages;
-    QString str;
-    for (int i = 0; i < totalLines; ++i)
-        str += "\n";
-
-    onShellRead(str.toUtf8());
-
-    m_scrollBar->setValue(m_scrollBar->maximum());
-
-    // TODO support negative npages
-}
-
 void TerminalWidget::doSetCursorVisible(bool visible)
 {
     if (visible)
@@ -362,10 +209,5 @@ void TerminalWidget::doSetCursorVisible(bool visible)
 void TerminalWidget::doSetWindowTitle(const QString &title)
 {
     ((QWidget*)parent()->parent())->setWindowTitle(title);
-}
-
-void TerminalWidget::doVerticalTab()
-{
-    onShellRead(QString("\n\n\n").toUtf8());
 }
 

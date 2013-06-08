@@ -92,52 +92,13 @@ void Cursor::moveBy(int rowDelta, int colDelta)
     beginPauseBlink();
 }
 
-static int indexOf(int row, int col, const QString &str)
-{
-    // Find the right line
-    int index = 0;
-    for (int i = 0; i < row; ++i)
-    {
-        index = str.indexOf('\n', index + 1);
-        if (index == -1)
-        {
-            // The cursor is below the final line of text
-            return -1;
-        }
-    }
-
-    // Find the right column within the line
-    int len = str.indexOf('\n', index + 1) - 1;
-    if (len == -2)
-        len = str.length();
-    len -= index;
-
-    if (col >= len)
-    {
-        // The cursor is beyond the end of the text on this line
-        return -1;
-    }
-
-    if (row > 0)
-        ++index;    // Skip the leading newline
-
-    if (index + col >= str.length())
-        return -1;  // Cursor past end of buffer
-
-    return index + col;
-}
-
 void Cursor::render(QPainter &p)
 {
     // Do nothing if the cursor currently isn't visible
     if (m_hidden || !m_blinkVisible)
         return;
 
-    // Find the character under the cursor
-    int index = indexOf(m_row, m_col, m_parent->contents());
-    QChar c = index == -1 ? ' ' : m_parent->contents()[index];
-
-    // Find out where the character is
+    // Find out where the cursor is
     QFont font(TERMINAL_FONT_FAMILY, TERMINAL_FONT_HEIGHT);
     font.setHintingPreference(QFont::PreferFullHinting);
 
@@ -154,6 +115,8 @@ void Cursor::render(QPainter &p)
     // Draw the inverted character the cursor is over
     p.setFont(font);
     p.setPen(QColor(TERMINAL_BG_R, TERMINAL_BG_G, TERMINAL_BG_B));
+
+    QChar c = m_parent->history().charAt(m_row, m_col);
     p.drawText(x, y + fm.lineSpacing(), QString(c));
 }
 

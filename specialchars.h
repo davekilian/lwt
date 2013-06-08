@@ -160,7 +160,7 @@ signals:
       * @param foreground indicates whether to set the foreground or background
       *                   color
       */
-    void setColor(Color c, bool bright, bool foreground);
+    void setColor(SpecialChars::Color c, bool bright, bool foreground);
 
     /** Set either the foreground or the background color from a 256-color
       * scheme.

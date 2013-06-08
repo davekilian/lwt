@@ -2,6 +2,7 @@
 #define TERMINALWIDGET_H
 
 #include "cursor.h"
+#include "history.h"
 #include "shell.h"
 #include "specialchars.h"
 
@@ -30,14 +31,8 @@ public:
     explicit TerminalWidget(QWidget *parent = 0);
     ~TerminalWidget();
 
-    /** Gets this terminal's entire input history */
-    const QString& contents() const;
-
-    /** Sets the termainl's input history to the given string */
-    void setContents(const QString &);
-
-    /** Gets a reference to the terminal's input history buffer */
-    QString &buffer();
+    /** Gets the object that tracks the input history */
+    const History &history() const;
 
     /** Gets or sets the amount the view has been scrolled, in pixels */
     int scrollAmount();
@@ -56,21 +51,11 @@ private slots:
     void onScroll(int);
 
     void doBell();
-    void doBackspace();
-    void doCarriageReturn();
-    void doDel();
-    void doErase(SpecialChars::EraseType);
-    void doFormFeed();
-    void doHorizontalTab();
-    void doMoveCursorBy(int rowDelta, int colDelta);
-    void doMoveCursorTo(int row, int col);
-    void doScroll(int npages);
     void doSetCursorVisible(bool visible);
     void doSetWindowTitle(const QString &title);
-    void doVerticalTab();
 
 private:
-    QString m_contents;
+    History m_history;
     Shell *m_shell;
     Cursor m_cursor;
     SpecialChars m_chars;
