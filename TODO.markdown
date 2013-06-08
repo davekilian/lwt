@@ -1,52 +1,8 @@
 
-# History Object
-
-Thought about this in the shower yesterday and wrote a note on my phone :)
-
-The basic idea is to have four pieces of data:
-
-* A vector of QStrings called `lines`. Each item in `lines` is a line of text
-  (without the trailing newline!) received from the shell, unmodified.
-
-* A vector of structs called `vlines`. Each vline corresponds to an actual line
-  of text as it will be drawn to the screen (i.e. with word wrap precomputed).
-  Each item in the list is just a substring within one of the items in `lines`.
-
-* A vector of structs called `colors`. Each item in this list contains an index
-  into some `lines` item and the color palette index for that character. This
-  list is sparse (i.e. items only exist when the color is changed).
-
-* A cursor index `cursor` within `lines` somewhere.
-
-When the window is resized, we compute the number of columns the window can
-show. If the number of columns has changed, we throw away `vlines` and
-recompute it from scratch. This should be a relatively quick operation
-(basically just creating structs based on each lines precomputed `.length()`
-property). However, if it's too slow for reasonably large histories, we may 
-have to get clever about lazily re-evaluating sections of `vlines`.
-
-To draw the contents of the window, compute the pixel coordinates of the top
-and bottom of the viewport. Divide those by the font's line spacing to obtain
-the row indices. Loop over those row indices in `vlines` and render that text.
-Simple! :)
-
-For color support, we will additionally need to binary search through `colors`
-to find the color section for the first character we want to draw. Afterwards
-we just need to look at subsequent items in the colors list.
-
-When we insert a character, we change the `lines` item containing the cursor
-and recompute the items in `vlines` that come after that `lines` item. Usually
-this is constant time since usually the cursor is at the last line.
-
 # Fix Escape Sequences
 
 A number of escape sequences currently don't work correctly because they're
 stubs waiting for the history object
-
-# Line Wrap
-
-Act like Terminal.app -- store the string without line wraps, but wrap the
-line dynamically when the window is resized. 
 
 # Color support
 

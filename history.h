@@ -175,10 +175,10 @@ private:
      */
     QVector<gevent>     m_gevents;
 
-    /** The canonical line number of the user's cursor */
+    /** The virtual line number of the user's cursor */
     int                 m_cursorLine;
 
-    /** The index into the canonical line of this user's cursor */
+    /** The index into the virtual line of this user's cursor */
     int                 m_cursorCol;
 
     /** The height of the viewport in rows */

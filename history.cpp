@@ -45,13 +45,13 @@ void History::insert(QChar c)
 {
     // Bail if the cursor is somewhere whacky
     if (m_cursorLine >= m_vlines.size())
-        return; // NYI
+        return; // NYI -- or should this be an assert? TODO
 
-    if (m_cursorCol > m_vlines[m_cursorLine].len)
-        return; // NYI
+    vline &v = m_vlines[m_cursorLine];
+    if (m_cursorCol > v.len)
+        return; // NYI -- or assert, TODO
 
     // Insert the character
-    vline &v = m_vlines[m_cursorLine];
     int lineNumber = v.line;
 
     if (c == '\n')
@@ -134,7 +134,8 @@ void History::onViewportResized(int numRowsVisible, int numColsVisible)
 
     wrapLines();
 
-    // TODO fire the updated and cursormoved signals? Probably
+    emit cursorMoved(m_cursorLine, m_cursorCol);
+    emit updated();
 }
 
 void History::backspace()
@@ -210,18 +211,37 @@ void History::verticalTab()
 
 void History::wrapLines()
 {
-    // DEBUG stub implementation for testing
-    m_vlines.clear();
-    for (int i = 0; i < m_lines.size(); ++i)
-        m_vlines.append(vline(i, 0, m_lines[i].size()));
+    // Record the canonical location of the cursor
+    int cursorLine = m_vlines[m_cursorLine].line,
+        cursorCol  = m_vlines[m_cursorLine].beg + m_cursorCol;
 
-    // TODO implement this
-    // TODO don't forget to move the cursor too
-    //      should be able to:
-    //      - convert the cursor coords to canonical indexing
-    //      - while building the line, see if the current vline
-    //        has the cursor's canonical index
-    //          - if it does, update the cursor position
-    // TODO then start on escape sequences
+    // Replace the current vlines with a new list corresponding to the current
+    // canonical line list
+    m_vlines.clear();
+
+    for (int i = 0; i < m_lines.size(); ++i)
+    {
+        const QString &line = m_lines[i];
+
+        int next = 0;
+        while (next <= line.size())
+        {
+            int count = qMin(m_numColsVisible, line.size() - next);
+            vline v(i, next, count);
+
+            m_vlines.append(v);
+
+            // If this vline contains the cursor, update the cursor coords
+            if (i == cursorLine &&
+                next <= cursorCol &&
+                next + count >= cursorCol)
+            {
+                m_cursorLine = m_vlines.size() - 1;
+                m_cursorCol = cursorCol - v.beg;
+            }
+
+            next += m_numColsVisible;
+        }
+    }
 }
 

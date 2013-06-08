@@ -127,7 +127,16 @@ void TerminalWidget::paintEvent(QPaintEvent *)
 
 void TerminalWidget::resizeEvent(QResizeEvent *)
 {
-    m_history.onViewportResized(width(), height());
+    QFont font(TERMINAL_FONT_FAMILY, TERMINAL_FONT_HEIGHT);
+    QFontMetrics fm(font);
+
+    int w = width() - (m_scrollBar->isVisible() ? m_scrollBar->width() : 0),
+        h = height(),
+        numRows = h / fm.lineSpacing(),
+        numCols = (w - m_scrollBar->width()) / fm.averageCharWidth();
+
+    m_history.onViewportResized(numRows, numCols);
+
     calcScrollbarSize();
     update();
 }
