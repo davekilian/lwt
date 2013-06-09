@@ -36,6 +36,10 @@ TerminalWidget::TerminalWidget(QWidget *parent) :
             &m_cursor,  SLOT(moveTo(int, int)));
     connect(&m_history, SIGNAL(updated()),
                         SLOT(update()));
+    connect(&m_history, SIGNAL(scrollToBottom()),
+                        SLOT(onHistoryScrollToBottom()));
+
+    m_history.connectTo(&m_chars);
 
     // Debug
     QStringList a;
@@ -70,19 +74,19 @@ void TerminalWidget::setScrollAmount(int val)
 
 void TerminalWidget::onShellRead(const QByteArray &data)
 {
-    m_history.beginInsert();
+    m_history.beginWrite();
 
     QString input(data);
     while (input.length() > 0)
     {
         if (!m_chars.eat(&input))
         {
-            m_history.insert(input[0]);
+            m_history.write(input[0]);
             input = input.right(input.length() - 1);
         }
     }
 
-    m_history.endInsert();
+    m_history.endWrite();
 
     calcScrollbarSize();
     scrollToEnd();
@@ -133,7 +137,7 @@ void TerminalWidget::resizeEvent(QResizeEvent *)
     int w = width() - (m_scrollBar->isVisible() ? m_scrollBar->width() : 0),
         h = height(),
         numRows = h / fm.lineSpacing(),
-        numCols = (w - m_scrollBar->width()) / fm.averageCharWidth();
+        numCols = w / fm.averageCharWidth();
 
     m_history.onViewportResized(numRows, numCols);
 
@@ -168,6 +172,12 @@ void TerminalWidget::onScroll(int)
     update();
 }
 
+void TerminalWidget::onHistoryScrollToBottom()
+{
+    calcScrollbarSize();
+    m_scrollBar->setValue(m_scrollBar->maximum());
+}
+
 void TerminalWidget::calcScrollbarSize()
 {
     QFont font(TERMINAL_FONT_FAMILY, TERMINAL_FONT_HEIGHT);
@@ -192,7 +202,7 @@ void TerminalWidget::scrollToEnd()
     int nLines = m_history.numLines();
     int contentHeight = nLines * fm.lineSpacing();
 
-    int minValue = contentHeight - height() + 3 * fm.lineSpacing();
+    int minValue = contentHeight - height() + fm.lineSpacing();
     if (scrollAmount() < minValue)
         setScrollAmount(minValue);
 }

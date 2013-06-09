@@ -49,6 +49,7 @@ private slots:
     void onShellExited();
 
     void onScroll(int);
+    void onHistoryScrollToBottom();
 
     void doBell();
     void doSetCursorVisible(bool visible);

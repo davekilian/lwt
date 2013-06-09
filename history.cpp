@@ -1,8 +1,6 @@
 
 #include "history.h"
 
-/* TODO give a breakdown of the algorithm */
-
 History::History() 
     : m_cursorLine(0),
       m_cursorCol(0),
@@ -39,30 +37,40 @@ void History::connectTo(SpecialChars *chars) const
     connect(chars, SIGNAL(verticalTab()), SLOT(verticalTab()));
 }
 
-void History::beginInsert() { }
+void History::beginWrite() { }
 
-void History::insert(QChar c)
+void History::write(QChar c)
 {
-    // Bail if the cursor is somewhere whacky
-    if (m_cursorLine >= m_vlines.size())
-        return; // NYI -- or should this be an assert? TODO
+    Q_ASSERT(m_cursorLine < m_vlines.size());
 
     vline &v = m_vlines[m_cursorLine];
-    if (m_cursorCol > v.len)
-        return; // NYI -- or assert, TODO
+    Q_ASSERT(m_cursorCol <= v.len);
 
-    // Insert the character
     int lineNumber = v.line;
 
+    // Handle a newline
     if (c == '\n')
     {
-        ++lineNumber;
         ++m_cursorLine;
         m_cursorCol = 0;
 
-        m_lines.insert(lineNumber, "");
-        m_vlines.insert(m_cursorLine, vline(lineNumber, 0, 0));
+        if (m_cursorLine == m_vlines.size())
+        {
+            m_lines.append("");
+            m_vlines.append(vline(m_lines.size() - 1, 0, 0));
+        }
     }
+
+    // Overwrite an old character
+    else if (m_cursorCol < v.len)
+    {
+        int cursorCol = v.beg + m_cursorCol;
+        m_lines[lineNumber][cursorCol] = c;
+
+        ++m_cursorCol;
+    }
+
+    // Append a new character
     else
     {
         int cursorCol = v.beg + m_cursorCol;
@@ -73,7 +81,7 @@ void History::insert(QChar c)
     }
 }
 
-void History::endInsert()
+void History::endWrite()
 {
     wrapLines();
 
@@ -140,56 +148,128 @@ void History::onViewportResized(int numRowsVisible, int numColsVisible)
 
 void History::backspace()
 {
+    if (m_cursorCol == 0)
+        return; // Nothing before the cursor
+
+    Q_ASSERT(m_cursorLine < m_vlines.size());
+
+    const vline &v = m_vlines[m_cursorLine];
+    Q_ASSERT(m_cursorCol <= v.len);
+
+    m_lines[v.line].remove(v.beg + m_cursorCol - 1, 1);
+    --m_cursorCol;
+
+    wrapLines();
+
+    emit cursorMoved(m_cursorLine, m_cursorCol);
+    emit updated();
 }
 
 void History::carriageReturn()
 {
+    m_cursorCol = 0;
+    emit cursorMoved(m_cursorLine, m_cursorCol);
 }
 
 void History::del()
 {
+    Q_ASSERT(m_cursorLine < m_vlines.size());
+
+    const vline &v = m_vlines[m_cursorLine];
+    Q_ASSERT(m_cursorCol <= v.len);
+
+    m_lines[v.line].remove(v.beg + m_cursorCol, 1);
+
+    wrapLines();
+    emit updated();
 }
 
 void History::erase(SpecialChars::EraseType type)
 {
+    // The spec-correct behavior here is to actually delete data from m_lines
+    // and then recompute m_vlines. However, Ctrl+L causes MinGW bash to
+    // produce a sequence that erases all history data. I'd rather Ctrl+L not
+    // be destructive, so I'm treating this like a form-feed++ event.
+    //
+    // The basic idea is to form-feed and then re-add the data that wasn't
+    // supposed to be erased.
+
+    // TODO this is gonna be one ugly mother
     (void)type;
+
+    // DEBUG in the meantime ...
+    m_cursorLine = m_vlines.size() - 1;
+    m_cursorCol = m_vlines[m_cursorLine].len;
+    formFeed();
 }
 
 void History::formFeed()
 {
+    scroll(1);
 }
 
 void History::horizontalTab()
 {
+    // To implement horizontal tabs, it'd be sufficient to just append a \t
+    // character here. Instead, we manually convert the tab to spaces to keep
+    // the invariant that every character in the input buffer occupies exactly
+    // one cell on the screen.
+
+    const int SPACES_PER_TAB = 8;
+    int nspaces = SPACES_PER_TAB - (m_cursorCol % SPACES_PER_TAB);
+
+    for (int i = 0; i < nspaces; ++i)
+        write(' ');
 }
 
 void History::moveCursorBy(int rowDelta, int colDelta)
 {
-    (void)rowDelta;
-    (void)colDelta;
+    moveCursorTo(m_cursorLine + rowDelta, m_cursorCol + colDelta);
 }
 
 void History::moveCursorTo(int row, int col)
 {
-    (void)row;
-    (void)col;
+    // TODO this actually needs to be relative to the viewport ...
+    m_cursorLine = row;
+    if (m_cursorLine < 0)
+        m_cursorLine = 0;
+    else if (m_cursorLine >= m_vlines.size())
+        m_cursorLine = m_vlines.size() - 1;
+
+    const vline &v = m_vlines[m_cursorLine];
+
+    m_cursorCol = col;
+    if (m_cursorCol < 0)
+        m_cursorCol = 0;
+    else if (m_cursorCol > v.len)
+        m_cursorCol = v.len;
+
+    emit cursorMoved(m_cursorLine, m_cursorCol);
 }
 
 void History::popCursorPosition()
 {
+    // TODO
 }
 
 void History::pushCursorPosition()
 {
+    // TODO
 }
 
 void History::resetColors()
 {
+    // TODO
 }
 
 void History::scroll(int npages)
 {
-    (void)npages;
+    // TODO support -npages values. What's the desired behavior exactly?
+
+    for (int i = 0; i < npages * m_numRowsVisible; ++i)
+        write('\n');
+
+    emit scrollToBottom();
 }
 
 void History::setColor(SpecialChars::Color c, bool bright, bool foreground)
@@ -197,16 +277,20 @@ void History::setColor(SpecialChars::Color c, bool bright, bool foreground)
     (void)c;
     (void)bright;
     (void)foreground;
+    // TODO
 }
 
 void History::setColor256(int index, bool foreground)
 {
     (void)index;
     (void)foreground;
+    // TODO
 }
 
 void History::verticalTab()
 {
+    for (int i = 0; i < 3; ++i)
+        write('\t');
 }
 
 void History::wrapLines()

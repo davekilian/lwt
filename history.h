@@ -24,14 +24,14 @@ public:
      */
     void connectTo(SpecialChars *chars) const;
 
-    /** Must be called before you begin insert()ing characters */
-    void beginInsert();
+    /** Must be called before you begin write()ing characters */
+    void beginWrite();
 
-    /** Inserts the given character into the history buffer at the cursor */
-    void insert(QChar c);
+    /** Writes the given character into the history buffer at the cursor */
+    void write(QChar c);
 
-    /** Must be called after you finish insert()ing characters */
-    void endInsert();
+    /** Must be called after you finish write()ing characters */
+    void endWrite();
 
     /** Gets the character at the given row and column. Returns the space
      *  character (' ') if there is no character in the given cell. This method
@@ -85,9 +85,18 @@ signals:
      */
     void updated();
 
+    /** Raised whenever this history object thinks the terminal view should be
+     *  scrolled to the bottom. This happens e.g. when processing an ASCII
+     *  form-feed (FF) character
+     */
+    void scrollToBottom();
+
 private slots:
     /** Slots activated by a SpecialChars object specified in a connectTo()
      *  call. See specialchars.h for details about the individual signals.
+     *
+     *  Note: these handlers are all implemented assuming they were called
+     *  inside a beginWrite / endWrite block.
      */
 
     void backspace();

@@ -1,8 +1,7 @@
 
-# Fix Escape Sequences
+# Re-implement Escape Sequences
 
-A number of escape sequences currently don't work correctly because they're
-stubs waiting for the history object
+Escape handlers are now in the History object
 
 # Color support
 
@@ -95,4 +94,15 @@ we'd need to forward mouse events to the hidden cmd.exe window or something.
 
 The user should be able to scroll up somewhere and read the text while the
 shell is spewing text below
+
+# Word Wrap and Scrolling
+
+Right now, when you change the size of the window, word-wrapping can cause you
+to see something different from what you were seeing before. For example, if
+you drag to make the window more narrow, you see older lines; if you make the
+window wider, you see newer lines.
+
+To fix this, we'd need to derive a formula for what the new scroll value should
+be. We need information from the word-wrapper too, since which lines are
+getting wrapped is important. 
 
