@@ -1,7 +1,20 @@
 
-# Re-implement Escape Sequences
+# Erase sequence
 
-Escape handlers are now in the History object
+Implement the erase() handler in History. This one's complicated.
+
+# Bash History and Line Editing
+
+Line editing in bash isn't working correctly
+
+* If you press the up arrow, you get the previous command ... minus the last
+  character (consistently)
+* If you press the left arrow, you lose part of the line after the arrow
+
+See what's going on in terms of escape sequences and figure out what (if
+anything) we're doing wrong. Worse come to worst MinGW bash might have
+cmd.exe-specific workarounds or is buggy, in which case we'd need to add
+compatibility flags or something.
 
 # Color support
 
