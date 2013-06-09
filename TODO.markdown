@@ -32,14 +32,46 @@ Abstract system with three implementations:
    what the Shell object does.
 
 2. A Windows-only implementation that uses the Console API to spin up the shell
-   in a hidden console Window, and do I/O with that. Implementing Ctrl+C might
+   in a hidden console window, and do I/O with that. Implementing Ctrl+C might
    be tricky.
-
-   See [winpty](https://github.com/rprichard/winpty) and the Windows
-   [Console Docs](http://msdn.microsoft.com/en-us/library/windows/desktop/ms682010(v=vs.85).aspx).
 
 3. A unix-only implementation that allocates a pty and spawns the shell binary
    See [kpty](http://api.kde.org/4.x-api/kdelibs-apidocs/kpty/html/)
+
+## Windows Console Driver
+
+I've been reading a bit about windows consoles. It seems like we may be able to
+do the following for the Windows console driver:
+
+* Call `AllocConsole()` to create and associate a console with the lwt process.
+  This will show an actual console window, but there may be some way to hide
+  the window (either showing it way off screen or putting it in a "background
+  desktop" like winpty)
+
+* Disable all text processing on the console's output, so the shell driver (in
+  lwt) can process the console's output in raw mode. That is, on the output,
+  disable `ENABLE_PROCESSED_OUTPUT` and maybe `ENABLE_WRAP_AT_EOL_OUTPUT`.
+
+* Spin up the shell binary. Since we spun it up from within lwt.exe, it'll
+  inherit lwt.exe's console. Which will incidentally cause isatty() to return
+  true
+
+* Service I/O using native Windows I/O calls and the streams returned by 
+  `GetStdHandle()`. Maybe we can `WaitForMultipleObjects` or something so that
+  we can get events instead of regularly polling. Are Qt signals
+  thread-friendly?
+
+It's not really clear how to read from the output. It seems I can either poll
+the screen buffer (which isn't ideal, because the screen buffer has a fixed
+width and enforces wrapping) or call `ReadFile` / `ReadConsole` on the stdout
+stream. Ideally I can do the latter to get raw character output with no
+processing. 
+
+Reference:
+
+* [MSDN Console Docs](http://msdn.microsoft.com/en-us/library/windows/desktop/ms682010(v=vs.85).aspx)
+* [winpty](https://github.com/rprichard/winpty)
+* [Someone else's notes on Windows consoles](https://code.soundsoftware.ac.uk/projects/easyhg/wiki/TalkingToSubprocess)
 
 # Input Lag
 
