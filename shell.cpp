@@ -31,6 +31,9 @@ void Shell::open()
     connect(&m_process, SIGNAL(readyReadStandardError()), SLOT(onstderr()));
     connect(&m_process, SIGNAL(finished(int,QProcess::ExitStatus)),
             SLOT(onclose()));
+
+    m_process.setReadChannel(QProcess::StandardOutput);
+    m_process.setProcessChannelMode(QProcess::MergedChannels);
     m_process.start(m_command, m_args);
 }
 
@@ -62,13 +65,6 @@ QString Shell::write(const QString &str)
 
 void Shell::onstdout()
 {
-    m_process.setReadChannel(QProcess::StandardOutput);
-    read();
-}
-
-void Shell::onstderr()
-{
-    m_process.setReadChannel(QProcess::StandardError);
     read();
 }
 

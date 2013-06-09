@@ -58,35 +58,8 @@ See if there's some way we can poll the QProcess manually on a watchdog thread
 Update: Removed the third item by calling repaint instead of update. Already a
 small improvement :)
 
-# Input Race Condition
-
-This could be related to input lag, but: it seems it's possible for the shell
-to write data to the screen before the input is echoed. Or something? 
-
-If you type "help break" very quickly and type enter quickly, the first line
-sometimes appears on the line buffer, which shouldn't happen ...
-
-# Signals
-
-On unix machines, detect special key sequences (Ctrl+C, Ctrl+Z) and send the
-appropriate signal to the shell process. 
-
-Figure out what happens on Windows. It's not as simple as killing the process,
-because you can Ctrl+C in MinGW bash to cancel a command
-
-# Pseudo-terminals
-
-For example, try ssh localhost -- it'll complain that ssh is running as a child
-process without a ptty. Figure out how ptty's work, and how MinGW deals with
-them.
-
-# Shell Driver
-
-* Abstract system with at least three implementations:
-    * A unix implementation that allocates a ptty and spawns a shell
-    * A windows implementation that does hacky stuff with cmd.exe
-      See the source for http://console.sf.net
-    * An implementation that just spins up a shell binary
+Note that this might not be a problem once we have the windows-specific shell
+driver.
 
 # Shell Options
 

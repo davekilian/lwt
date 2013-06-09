@@ -72,7 +72,6 @@ signals:
 
 private slots:
     void onstdout();
-    void onstderr();
     void onclose();
 
 private:
