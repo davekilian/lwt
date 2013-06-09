@@ -83,53 +83,47 @@ SpecialChars::SpecialChars() { }
 
 SpecialChars::~SpecialChars() { }
 
-bool SpecialChars::eat(QString *str)
+int SpecialChars::eat(const QString &str, int index)
 {
-    QChar c = (*str)[0];
+    QChar c = str[index];
 
     switch (c.toLatin1())
     {
         case ASCII_BEL:
             emit bell();
-            *str = str->right(str->length() - 1);
-            return true;
+            return index + 1;
 
         case ASCII_BS:
             emit backspace();
-            *str = str->right(str->length() - 1);
-            return true;
+            return index + 1;
 
         case ASCII_CR:
             emit carriageReturn();
-            *str = str->right(str->length() - 1);
-            return true;
+            return index + 1;
 
         case ASCII_DEL:
             emit del();
-            *str = str->right(str->length() - 1);
-            return true;
+            return index + 1;
 
         case ASCII_FF:
             emit formFeed();
-            *str = str->right(str->length() - 1);
-            return true;
+            return index + 1;
 
         case ASCII_HT:
             emit horizontalTab();
-            *str = str->right(str->length() - 1);
-            return true;
+            return index + 1;
 
         case ASCII_VT:
             emit verticalTab();
-            *str = str->right(str->length() - 1);
-            return true;
+            return index + 1;
 
         case ASCII_ESC:
         {
             char cmd;
             QString args;
+            int ret = index;
 
-            if (parseAnsi(str, &cmd, &args))
+            if (parseAnsi(str, &cmd, &args, &ret))
             {
                 // Convert the args string to a list of integers,
                 // since most commands require integer arguments.
@@ -150,85 +144,85 @@ bool SpecialChars::eat(QString *str)
                 {
                     case ANSI_CUU:
                         emit moveCursorBy(-intargs.value(0, 1), 0);
-                        return true;
+                        return ret;
 
                     case ANSI_CUD:
                         emit moveCursorBy(intargs.value(0, 1), 0);
-                        return true;
+                        return ret;
 
                     case ANSI_CUF:
                         emit moveCursorBy(0, intargs.value(0, 1));
-                        return true;
+                        return ret;
 
                     case ANSI_CUB:
                         emit moveCursorBy(0, -intargs.value(0, 1));
-                        return true;
+                        return ret;
 
                     case ANSI_CNL:
                         emit moveCursorBy(intargs.value(0, 1), 0);
                         emit moveCursorTo(-1, 0);
-                        return true;
+                        return ret;
 
                     case ANSI_CPL:
                         emit moveCursorBy(-intargs.value(0, 1), 0);
                         emit moveCursorTo(-1, 0);
-                        return true;
+                        return ret;
 
                     case ANSI_CHA:
                         emit moveCursorTo(-1, intargs.value(0, 0));
-                        return true;
+                        return ret;
 
                     case ANSI_CUP:
                     case ANSI_HVP:
                         emit moveCursorTo(intargs.value(0, 0) + 1,
                                           intargs.value(1, 0) + 1);
-                        return true;
+                        return ret;
 
                     case ANSI_ED:
                         emit erase((EraseType)intargs.value(0, 0));
-                        return true;
+                        return ret;
 
                     case ANSI_EL:
                         emit erase((EraseType)(intargs.value(0, 0) + 3));
-                        return true;
+                        return ret;
 
                     case ANSI_SU:
                         emit scroll(-intargs.value(0, 1));
-                        return true;
+                        return ret;
 
                     case ANSI_SD:
                         emit scroll(intargs.value(0, 1));
-                        return true;
+                        return ret;
 
                     case ANSI_SGR:
                         handleSGR(intargs);
-                        return true;
+                        return ret;
 
                     case ANSI_DSR:
                         emit reportCursorPosition();
-                        return true;
+                        return ret;
 
                     case ANSI_SCP:
                         emit pushCursorPosition();
-                        return true;
+                        return ret;
 
                     case ANSI_RCP:
                         emit popCursorPosition();
-                        return true;
+                        return ret;
 
                     case DECTCEM_HIC:
                         emit setCursorVisible(false);
-                        return true;
+                        return ret;
 
                     case DECTCEM_SHC:
                         emit setCursorVisible(true);
-                        return true;
+                        return ret;
 
                     default:
-                        return false;
+                        return ret;
                 }
             }
-            else if (parseXterm(str, &cmd, &args))
+            else if (parseXterm(str, &cmd, &args, &ret))
             {
                 switch (cmd)
                 {
@@ -236,40 +230,40 @@ bool SpecialChars::eat(QString *str)
                     case XTERM_CIN:
                     case XTERM_CWT:
                         emit setWindowTitle(args);
-                        return true;
+                        return ret;
 
                     default:
-                        return false;
+                        return ret;
                 }
             }
 
-            return true;
+            return ret;
         }
 
         default:
-            return false;
+            return index;
     }
 
-    return true;
+    return index;
 }
 
-bool SpecialChars::parseAnsi(QString *str, char *cmd, QString *args)
+bool SpecialChars::parseAnsi(const QString &str, char *cmd, QString *args, int *index)
 {
-    char next = (*str)[1].toLatin1();
+    char next = str[*index + 1].toLatin1();
     if (next == '[')
     {
         // Multi-character sequence
         int i = 2;
-        next = (*str)[i].toLatin1();
+        next = str[*index + i].toLatin1();
         while (next < '@' || next > '~')
         {
             args->append(next);
             ++i;
-            next = (*str)[i].toLatin1();
+            next = str[*index + i].toLatin1();
         }
 
         *cmd = next;
-        *str = str->right(str->length() - i - 1);
+        *index += i + 1;
 
         return true;
     }
@@ -282,7 +276,7 @@ bool SpecialChars::parseAnsi(QString *str, char *cmd, QString *args)
     {
         // Single-character sequence
         *cmd = next;
-        *str = str->right(str->length() - 2);
+        *index += 2;
 
         return true;
     }
@@ -293,10 +287,10 @@ bool SpecialChars::parseAnsi(QString *str, char *cmd, QString *args)
     }
 }
 
-bool SpecialChars::parseXterm(QString *str, char *cmd, QString *args)
+bool SpecialChars::parseXterm(const QString &str, char *cmd, QString *args, int *index)
 {
     // Make sure this is an Operating System Control sequence
-    char next = (*str)[1].toLatin1();
+    char next = str[*index + 1].toLatin1();
     if (next != ']')
     {
         return false;
@@ -305,7 +299,7 @@ bool SpecialChars::parseXterm(QString *str, char *cmd, QString *args)
     // Parse the command ID
     int i = 2;
     QString cmdstr;
-    while ((next = (*str)[i].toLatin1()) != ';')
+    while ((next = str[*index + i].toLatin1()) != ';')
     {
         cmdstr.append(next);
         ++i;
@@ -320,15 +314,13 @@ bool SpecialChars::parseXterm(QString *str, char *cmd, QString *args)
 
     // Parse the arguments
     ++i; // Skip over the semicolon
-    while ((next = (*str)[i].toLatin1()) != ASCII_STX && next != ASCII_BEL)
+    while ((next = str[*index + i].toLatin1()) != ASCII_STX && next != ASCII_BEL)
     {
         args->append(next);
         ++i;
     }
 
-    // Truncate the input string
-    *str = str->right(str->length() - i - 1);
-
+    *index += i + 1;
     return true;
 }
 

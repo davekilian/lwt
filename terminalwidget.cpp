@@ -74,15 +74,20 @@ void TerminalWidget::setScrollAmount(int val)
 
 void TerminalWidget::onShellRead(const QByteArray &data)
 {
+    QString input(data);
     m_history.beginWrite();
 
-    QString input(data);
-    while (input.length() > 0)
+    int i = 0;
+    while (i < input.length())
     {
-        if (!m_chars.eat(&input))
+        int next = m_chars.eat(input, i);
+        if (next == i)
         {
-            m_history.write(input[0]);
-            input = input.right(input.length() - 1);
+            m_history.write(input[i++]);
+        }
+        else
+        {
+            i = next;
         }
     }
 

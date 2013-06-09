@@ -91,7 +91,8 @@ public:
      *
      *  @return     A boolean indicating whether a sequence was removed.
      */
-    bool eat(QString *str);
+    //bool eat(QString *str);
+    int eat(const QString &str, int index);
 
     /** Returns a string containing scancodes for any special keys containing
      *  in the given key event
@@ -183,20 +184,22 @@ private:
     /** Attempts to parse an ANSI control sequence.
      *  Removes the sequence from the input string if successful.
      *
-     *  @param str  Pointer to the input string
-     *  @param cmd  Receives the command code
-     *  @param args Receives the command arguments
+     *  @param str      The input string
+     *  @param cmd      Receives the command code
+     *  @param args     Receives the command arguments
+     *  @param index    The index of the next char after the sequence
      */
-    bool parseAnsi(QString *str, char *cmd, QString *args);
+    bool parseAnsi(const QString &str, char *cmd, QString *args, int *index);
 
     /** Attempts to parse an xterm OS control sequence.
      *  Removes the sequence from the input string if successful.
      *
-     *  @param str  Pointer to the input string
-     *  @param cmd  Receives the command code
-     *  @param args Receives the command arguments
+     *  @param str      The input string
+     *  @param cmd      Receives the command code
+     *  @param args     Receives the command arguments
+     *  @param index    The index of the next char after the sequence
      */
-    bool parseXterm(QString *str, char *cmd, QString *args);
+    bool parseXterm(const QString &str, char *cmd, QString *args, int *index);
 
     /** Triggers setColor and setColor256 events for ASCII SGR codes */
     void handleSGR(QVector<int> args);
