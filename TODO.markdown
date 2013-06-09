@@ -13,14 +13,33 @@ Line editing in bash isn't working correctly
 
 See what's going on in terms of escape sequences and figure out what (if
 anything) we're doing wrong. Worse come to worst MinGW bash might have
-cmd.exe-specific workarounds or is buggy, in which case we'd need to add
-compatibility flags or something.
+cmd.exe-specific workarounds or is buggy, in which case we can just leave the
+problem as-is (shouldn't be a problem once we have the win32-specific shell
+driver)
 
 # Color support
 
 * Support control character codes for xterm-256 coloring
 * Support theming
 * Hardcode an attractive default theme
+
+# Shell Driver
+
+Abstract system with three implementations:
+
+1. A generic process-based implementation that doesn't do any kind of
+   pseudo-terminal allocation. Cross-platform but limited. This is currently
+   what the Shell object does.
+
+2. A Windows-only implementation that uses the Console API to spin up the shell
+   in a hidden console Window, and do I/O with that. Implementing Ctrl+C might
+   be tricky.
+
+   See [winpty](https://github.com/rprichard/winpty) and the Windows
+   [Console Docs](http://msdn.microsoft.com/en-us/library/windows/desktop/ms682010(v=vs.85).aspx).
+
+3. A unix-only implementation that allocates a pty and spawns the shell binary
+   See [kpty](http://api.kde.org/4.x-api/kdelibs-apidocs/kpty/html/)
 
 # Input Lag
 
