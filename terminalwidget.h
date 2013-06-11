@@ -66,6 +66,7 @@ private:
 
     void calcScrollbarSize();
     void scrollToEnd();
+    void updateViewport();
 };
 
 #endif // TERMINALWIDGET_H

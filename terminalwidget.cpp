@@ -45,7 +45,7 @@ TerminalWidget::TerminalWidget(QWidget *parent) :
     QStringList a;
     a.append("--login");
     a.append("-i");
-    m_shell = new Shell("C:\\Program Files (x86)\\Git\\bin\\sh.exe", a);
+    m_shell = new Shell("C:\\MinGW\\msys\\1.0\\bin\\sh.exe", a);
     connect(m_shell, SIGNAL(read(QByteArray)), SLOT(onShellRead(QByteArray)));
     connect(m_shell, SIGNAL(closed()), SLOT(onShellExited()));
     m_shell->open();
@@ -95,6 +95,7 @@ void TerminalWidget::onShellRead(const QByteArray &data)
 
     calcScrollbarSize();
     scrollToEnd();
+    updateViewport();
 }
 
 void TerminalWidget::keyPressEvent(QKeyEvent *ev)
@@ -119,13 +120,21 @@ void TerminalWidget::paintEvent(QPaintEvent *)
     p.setFont(font);
     p.setPen(QColor(TERMINAL_FG_R, TERMINAL_FG_G, TERMINAL_FG_B));
 
-    QFontMetrics fm(font);
-    QStringList lines = m_history.visibleLines(m_scrollBar->value(),
-                                               m_scrollBar->value() + height(),
-                                               fm.lineSpacing());
+    // We call this here to make sure scrollAmount() matches the viewport
+    // parameters in m_history; otherwise m_history.visibleLines() can be
+    // off by one (since Qt doesn't raise onScroll() for every single pixel
+    // the scroll bar is moved, but m_scrollBar->value() is pixel-perfect).
+    //
+    // updateViewport() gets called separately when the window is resized,
+    // so updateViewport() here should always be a pretty cheap call (no need
+    // to recompute line wrapping).
+    //
+    // Still feels kinda kludgey though.
+    updateViewport();
 
-    int y = fm.lineSpacing() - (m_scrollBar->value() % fm.lineSpacing());
-    foreach (const QString &line, lines)
+    QFontMetrics fm(font);
+    int y = fm.lineSpacing() - (scrollAmount() % fm.lineSpacing());
+    foreach (const QString &line, m_history.visibleLines())
     {
         p.drawText(0, y, line);
         y += fm.lineSpacing();
@@ -136,18 +145,8 @@ void TerminalWidget::paintEvent(QPaintEvent *)
 
 void TerminalWidget::resizeEvent(QResizeEvent *)
 {
-    QFont font(TERMINAL_FONT_FAMILY, TERMINAL_FONT_HEIGHT);
-    QFontMetrics fm(font);
-
-    int w = width() - (m_scrollBar->isVisible() ? m_scrollBar->width() : 0),
-        h = height(),
-        numRows = h / fm.lineSpacing(),
-        numCols = w / fm.averageCharWidth();
-
-    m_history.onViewportResized(numRows, numCols);
-
     calcScrollbarSize();
-    update();
+    updateViewport();
 }
 
 void TerminalWidget::wheelEvent(QWheelEvent *we)
@@ -162,8 +161,7 @@ void TerminalWidget::wheelEvent(QWheelEvent *we)
               * m_scrollBar->singleStep();
 
     setScrollAmount(scrollAmount() - delta);
-    calcScrollbarSize();
-    update();
+    onScroll(m_scrollBar->value());
 }
 
 void TerminalWidget::onShellExited()
@@ -173,7 +171,7 @@ void TerminalWidget::onShellExited()
 
 void TerminalWidget::onScroll(int)
 {
-    calcScrollbarSize();
+    updateViewport();
     update();
 }
 
@@ -212,6 +210,18 @@ void TerminalWidget::scrollToEnd()
         setScrollAmount(minValue);
 }
 
+void TerminalWidget::updateViewport()
+{
+    QFont font(TERMINAL_FONT_FAMILY, TERMINAL_FONT_HEIGHT);
+    QFontMetrics fm(font);
+
+    m_history.onViewportChanged(m_scrollBar->value(),
+                                m_scrollBar->value() + height(),
+                                fm.lineSpacing(),
+                                width(),
+                                fm.averageCharWidth());
+}
+
 void TerminalWidget::doBell() 
 { 
     QApplication::beep();
@@ -234,4 +244,3 @@ void TerminalWidget::doSetWindowTitle(const QString &title)
 {
     ((QWidget*)parent()->parent())->setWindowTitle(title);
 }
-

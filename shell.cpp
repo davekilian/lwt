@@ -28,7 +28,6 @@ void Shell::open()
         close();
 
     connect(&m_process, SIGNAL(readyReadStandardOutput()), SLOT(onstdout()));
-    connect(&m_process, SIGNAL(readyReadStandardError()), SLOT(onstderr()));
     connect(&m_process, SIGNAL(finished(int,QProcess::ExitStatus)),
             SLOT(onclose()));
 

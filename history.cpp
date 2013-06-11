@@ -5,7 +5,11 @@ History::History()
     : m_cursorLine(0),
       m_cursorCol(0),
       m_numRowsVisible(0),
-      m_numColsVisible(0)
+      m_numColsVisible(0),
+      m_viewportTop(0),
+      m_viewportBottom(0),
+      m_cellWidth(0),
+      m_cellHeight(0)
 { 
     m_lines.append("");
     m_vlines.append(vline());
@@ -113,10 +117,10 @@ QString History::line(int index) const
     return l.mid(v.beg, v.len);
 }
 
-QStringList History::visibleLines(int yTop, int yBottom, int lineHeight) const
+QStringList History::visibleLines() const
 {
-    int min = yTop / lineHeight,        // Row at top of viewport
-        max = yBottom / lineHeight;     // Row at bottom of viewport
+    int min = m_viewportTop / m_cellHeight,     // Row at top of viewport
+        max = m_viewportBottom / m_cellHeight;  // Row at bottom of viewport
 
     QStringList ret;
     for (int i = min; i < max && i < m_vlines.size(); ++i)
@@ -135,15 +139,30 @@ int History::numLines() const
     return m_vlines.size();
 }
 
-void History::onViewportResized(int numRowsVisible, int numColsVisible)
+void History::onViewportChanged(int yTop, int yBottom, int lineHeight, 
+                                int width, int averageCharWidth)
 {
+    m_cellWidth = averageCharWidth;
+    m_cellHeight = lineHeight;
+    m_viewportTop = yTop;
+    m_viewportBottom = yBottom;
+
+    int numRowsVisible = (yBottom - yTop) / lineHeight,
+        numColsVisible = width / averageCharWidth;
+
+    bool resized = numRowsVisible != m_numRowsVisible ||
+                   numColsVisible != m_numColsVisible;
+
     m_numRowsVisible = numRowsVisible;
     m_numColsVisible = numColsVisible;
 
-    wrapLines();
+    if (resized)
+    {
+        wrapLines();
 
-    emit cursorMoved(m_cursorLine, m_cursorCol);
-    emit updated();
+        emit cursorMoved(m_cursorLine, m_cursorCol);
+        emit updated();
+    }
 }
 
 void History::backspace()
@@ -201,6 +220,38 @@ void History::erase(SpecialChars::EraseType type)
     m_cursorLine = m_vlines.size() - 1;
     m_cursorCol = m_vlines[m_cursorLine].len;
     formFeed();
+
+    /* TODO 
+     *
+     * Refactor this class so the terminal widget keeps this object's viewport
+     * (ytop and ybottom) parameters up to date.
+     *
+     * This means visibleLines() doesn't need to take arguments anymore.
+     *
+     *
+     * For this method:
+     *
+     * Cache the viewport parameters
+     * Cache the cursor parameters
+     *
+     * formFeed()
+     * 
+     * Walk through the lines that were visible before the form-feed
+     *      If the line is before the line containing the cursor
+     *          If the erase type is neither SCREEN_BEFORE nor SCREEN
+     *              echo the string
+     *
+     *      If this is the line containing the cursor
+     *          If the erase type is SCREEN_AFTER nor LINE_AFTER,
+     *              echo the part of the string before the cursor
+     *
+     *          If the erase type is SCREEN_BEFORE nor LINE_BEFORE,
+     *              echo the part of the string after the cursor
+     *
+     *      If this line comes after the cursor
+     *          If the erase type is neither SCREEN_AFTER nor SCREEN
+     *              echo the string
+     */
 }
 
 void History::formFeed()
