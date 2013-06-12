@@ -1,27 +1,31 @@
 
 # Erase sequence
 
-Implement the erase() handler in History. This one's complicated.
+This is still misbehaving for things like bash line history. I'm now thinking
+of bailing on the complicated handler and doing something simpler:
 
-# Fix other escape sequences
+* For any of the `ERASE_LINE`-type events, no-op unless the cursor is on the
+  last line. If it's on the last line, edit that line destructively
 
-`History::scroll()` needs to support negative values
-
-Absolute coordinates for moving the cursor should be relative to the viewport
+* For any of the `ERASE_SCREEN`-type events, invoke form-feed
 
 # Bash History and Line Editing
 
-Line editing in bash isn't working correctly
+Line editing in bash isn't working correctly. Here's why:
 
-* If you press the up arrow, you get the previous command ... minus the last
-  character (consistently)
-* If you press the left arrow, you lose part of the line after the arrow
+* Backspace is only supposed to move the cursor back
+* There's an escape sequence CSI#@, where means the next # characters should be
+  inserted instead of overwriting the next thing
+* There's an escape sequence CSI#P (TODO check that) which means delete the
+  next # characters from the buffer
 
-See what's going on in terms of escape sequences and figure out what (if
-anything) we're doing wrong. Worse come to worst MinGW bash might have
-cmd.exe-specific workarounds or is buggy, in which case we can just leave the
-problem as-is (shouldn't be a problem once we have the win32-specific shell
-driver)
+# ASCII SU/SD Handler
+
+Our current handler is incorrect -- this is supposed to isnert N newlines, not
+N pages.
+
+The way it works will probably interact very confusingly with our scrollback
+buffer. Not sure it's worth having this at all, since I've never seen it used.
 
 # Color support
 

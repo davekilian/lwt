@@ -106,8 +106,6 @@ private slots:
     void horizontalTab();
     void moveCursorBy(int rowDelta, int colDelta);
     void moveCursorTo(int row, int col);
-    void popCursorPosition();
-    void pushCursorPosition();
     void resetColors();
     void scroll(int npages);
     void setColor(SpecialChars::Color c, bool bright, bool foreground);

@@ -30,8 +30,6 @@ void History::connectTo(SpecialChars *chars) const
                      SLOT(moveCursorBy(int, int)));
     connect(chars, SIGNAL(moveCursorTo(int, int)), 
                      SLOT(moveCursorTo(int, int)));
-    connect(chars, SIGNAL(popCursorPosition()), SLOT(popCursorPosition()));
-    connect(chars, SIGNAL(pushCursorPosition()), SLOT(pushCursorPosition()));
     connect(chars, SIGNAL(resetColors()), SLOT(resetColors()));
     connect(chars, SIGNAL(scroll(int)), SLOT(scroll(int)));
     connect(chars, SIGNAL(setColor(SpecialColors::Color, bool, bool)), 
@@ -91,8 +89,6 @@ void History::write(const vline &line)
 
     for (int i = 0; i < line.len; ++i)
         write(str[line.beg + i]);
-
-    write('\n');
 }
 
 void History::writeBlanks(int count)
@@ -232,9 +228,9 @@ void History::erase(SpecialChars::EraseType type)
     // Store information that will be destroyed once we start echoing lines
     int curLine         = m_cursorLine,
         curCol          = m_cursorCol,
-        curDistFromEnd  = m_vlines.size() - m_cursorLine,
-        beg             = m_vlines.size() - m_numRowsVisible,
-        end             = m_vlines.size();
+        curDistFromEnd  = m_vlines.size() - 1 - m_cursorLine,
+        beg             = m_vlines.size() - 1 - m_numRowsVisible,
+        end             = m_vlines.size() - 1;
 
     if (beg < 0)
         beg = 0;
@@ -255,10 +251,8 @@ void History::erase(SpecialChars::EraseType type)
             {
                 write(m_vlines[i]);
             }
-            else
-            {
-                write('\n');
-            }
+
+            write('\n');
         }
 
         // If this line contains the cursor ...
@@ -289,17 +283,6 @@ void History::erase(SpecialChars::EraseType type)
                 type == SpecialChars::ERASE_SCREEN_BEFORE)
             {
                 write(after);
-            }
-            else
-            {
-                writeBlanks(after.len);
-            }
-
-            // Add a newline at the end of this line only if we're also going
-            // to be echoing the lines that come after this one
-            if (type != SpecialChars::ERASE_SCREEN &&
-                type != SpecialChars::ERASE_SCREEN_AFTER)
-            {
                 write('\n');
             }
         }
@@ -313,6 +296,7 @@ void History::erase(SpecialChars::EraseType type)
                 type != SpecialChars::ERASE_SCREEN_AFTER)
             {
                 write(m_vlines[i]);
+                write('\n');
             }
         }
     }
@@ -325,7 +309,7 @@ void History::erase(SpecialChars::EraseType type)
     {
         // More text was printed after the line the cursor is supposed to be
         // on, so move the cursor back to that line.
-        m_cursorLine = m_vlines.size() - curDistFromEnd;
+        m_cursorLine = m_vlines.size() - 1 - curDistFromEnd;
     }
 }
 
@@ -357,7 +341,7 @@ void History::moveCursorTo(int row, int col)
 {
     if (row >= 0)
     {
-        m_cursorLine = m_vlines.size()
+        m_cursorLine = m_vlines.size() - 1
                      - m_numRowsVisible
                      + row;
 
@@ -379,16 +363,6 @@ void History::moveCursorTo(int row, int col)
     }
 
     emit cursorMoved(m_cursorLine, m_cursorCol);
-}
-
-void History::popCursorPosition()
-{
-    // TODO
-}
-
-void History::pushCursorPosition()
-{
-    // TODO
 }
 
 void History::resetColors()
