@@ -48,15 +48,6 @@ public:
 
     /** Returns a list of lines that are currently visible, after taking word
      *  wrap into account
-     */
-    QStringList visibleLines() const;
-
-    /** Returns the number of lines of text this history contains */
-    int numLines() const;
-
-    /** Must be called when the visible region of the terminal is changed,
-     *  either because the size of the viewport was changed or because the
-     *  viewport was scrolled
      *
      *  @param yTop         The Y coordinate in pixels of the top of the 
      *                      viewport
@@ -64,11 +55,21 @@ public:
      *                      the viewport
      *  @param lineHeight   The distance in pixels between consecutive lines
      *                      when rendered to the screen
-     *  @param width        The width of the viewport in pixels
-     *  @param averageCharWidth The width of a single character
      */
-    void onViewportChanged(int yTop, int yBottom, int lineHeight, 
-                           int width, int averageCharWidth);
+    QStringList visibleLines(int yTop, int yBottom, int lineHeight) const;
+
+    /** Returns the number of lines of text this history contains */
+    int numLines() const;
+
+    /** Must be called when the viewport is resized horizontally.
+     *
+     *  This method performs a word-wrap on the original data received from the
+     *  shell to fit the new width of the viewport.
+     *
+     *  This method also caches the number of rows and columns visible, which
+     *  is needed in order to process some escape sequences (e.g. scrolling)
+     */
+    void onViewportResized(int numRowsVisible, int numColsVisible);
     
 signals:
     /** Raised whenever an input event or escape sequence causes the cursor to
@@ -193,26 +194,8 @@ private:
     /** The width of the viewport in columns */
     int                 m_numColsVisible;
 
-    /** The top of the viewport, in pixels */
-    int                 m_viewportTop;
-
-    /** The bottom of the viewport, in pixels */
-    int                 m_viewportBottom;
-
-    /** The width of a single cell, in pixels */
-    int                 m_cellWidth;
-
-    /** The height of a single cell, in pixels */
-    int                 m_cellHeight;
-
     /** Recomputes m_vlines based on m_lines and m_numVisibleCols */
     void wrapLines();
-
-    /** Writes the given line back into the buffer */
-    void write(const vline &line);
-
-    /** Writes blank characters to the buffer */
-    void writeBlanks(int count);
 };
 
 #endif

@@ -9,15 +9,23 @@ of bailing on the complicated handler and doing something simpler:
 
 * For any of the `ERASE_SCREEN`-type events, invoke form-feed
 
+First step: see if we can get away with just undoing the past few commits on
+the history and terminal widget objects. Looks if we did that, we'd have to
+repeat the following work:
+
+# `qDebug()` Unknown Control Sequences
+
+If we don't have a handler for an ANSI or xterm control sequence, print the
+sequence to `qDebug()`. This should help us catch issues faster.
+
 # Bash History and Line Editing
 
 Line editing in bash isn't working correctly. Here's why:
 
 * Backspace is only supposed to move the cursor back
-* There's an escape sequence CSI#@, where means the next # characters should be
-  inserted instead of overwriting the next thing
-* There's an escape sequence CSI#P (TODO check that) which means delete the
-  next # characters from the buffer
+* There's an escape sequence CSI#@, which inserts # blank characters at the
+  cursor
+* There's an escape sequence CSI#P, which deletes # characters at the cursor
 
 # ASCII SU/SD Handler
 
@@ -131,11 +139,6 @@ When enabled, lwt eats Ctrl+L and Ctrl+D events and does the following:
 # Instance Spinup
 
 * Create another instance of the process on Ctrl + N or something
-
-# Shell / Terminal Communication
-
-For things like mouse events. Figure out how this works on UNIX. On Windows,
-we'd need to forward mouse events to the hidden cmd.exe window or something.
 
 # Smarter Scroll Behavior
 

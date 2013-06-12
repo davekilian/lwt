@@ -5,11 +5,7 @@ History::History()
     : m_cursorLine(0),
       m_cursorCol(0),
       m_numRowsVisible(0),
-      m_numColsVisible(0),
-      m_viewportTop(0),
-      m_viewportBottom(0),
-      m_cellWidth(0),
-      m_cellHeight(0)
+      m_numColsVisible(0)
 { 
     m_lines.append("");
     m_vlines.append(vline());
@@ -30,6 +26,8 @@ void History::connectTo(SpecialChars *chars) const
                      SLOT(moveCursorBy(int, int)));
     connect(chars, SIGNAL(moveCursorTo(int, int)), 
                      SLOT(moveCursorTo(int, int)));
+    connect(chars, SIGNAL(popCursorPosition()), SLOT(popCursorPosition()));
+    connect(chars, SIGNAL(pushCursorPosition()), SLOT(pushCursorPosition()));
     connect(chars, SIGNAL(resetColors()), SLOT(resetColors()));
     connect(chars, SIGNAL(scroll(int)), SLOT(scroll(int)));
     connect(chars, SIGNAL(setColor(SpecialColors::Color, bool, bool)), 
@@ -83,20 +81,6 @@ void History::write(QChar c)
     }
 }
 
-void History::write(const vline &line)
-{
-    const QString &str = m_lines[line.line];
-
-    for (int i = 0; i < line.len; ++i)
-        write(str[line.beg + i]);
-}
-
-void History::writeBlanks(int count)
-{
-    for (int i = 0; i < count; ++i)
-        write(' ');
-}
-
 void History::endWrite()
 {
     wrapLines();
@@ -129,10 +113,10 @@ QString History::line(int index) const
     return l.mid(v.beg, v.len);
 }
 
-QStringList History::visibleLines() const
+QStringList History::visibleLines(int yTop, int yBottom, int lineHeight) const
 {
-    int min = m_viewportTop / m_cellHeight,     // Row at top of viewport
-        max = m_viewportBottom / m_cellHeight;  // Row at bottom of viewport
+    int min = yTop / lineHeight,        // Row at top of viewport
+        max = yBottom / lineHeight;     // Row at bottom of viewport
 
     QStringList ret;
     for (int i = min; i < max && i < m_vlines.size(); ++i)
@@ -151,30 +135,15 @@ int History::numLines() const
     return m_vlines.size();
 }
 
-void History::onViewportChanged(int yTop, int yBottom, int lineHeight, 
-                                int width, int averageCharWidth)
+void History::onViewportResized(int numRowsVisible, int numColsVisible)
 {
-    m_cellWidth = averageCharWidth;
-    m_cellHeight = lineHeight;
-    m_viewportTop = yTop;
-    m_viewportBottom = yBottom;
-
-    int numRowsVisible = (yBottom - yTop) / lineHeight,
-        numColsVisible = width / averageCharWidth;
-
-    bool resized = numRowsVisible != m_numRowsVisible ||
-                   numColsVisible != m_numColsVisible;
-
     m_numRowsVisible = numRowsVisible;
     m_numColsVisible = numColsVisible;
 
-    if (resized)
-    {
-        wrapLines();
+    wrapLines();
 
-        emit cursorMoved(m_cursorLine, m_cursorCol);
-        emit updated();
-    }
+    emit cursorMoved(m_cursorLine, m_cursorCol);
+    emit updated();
 }
 
 void History::backspace()
@@ -223,94 +192,15 @@ void History::erase(SpecialChars::EraseType type)
     // be destructive, so I'm treating this like a form-feed++ event.
     //
     // The basic idea is to form-feed and then re-add the data that wasn't
-    // supposed to be erased. Unfortunately, this is kinda messy :)
+    // supposed to be erased.
 
-    // Store information that will be destroyed once we start echoing lines
-    int curLine         = m_cursorLine,
-        curCol          = m_cursorCol,
-        curDistFromEnd  = m_vlines.size() - 1 - m_cursorLine,
-        beg             = m_vlines.size() - 1 - m_numRowsVisible,
-        end             = m_vlines.size() - 1;
+    // TODO this is gonna be one ugly mother
+    (void)type;
 
-    if (beg < 0)
-        beg = 0;
-
-    // Make sure the cursor is below any visible data
+    // DEBUG in the meantime ...
+    m_cursorLine = m_vlines.size() - 1;
+    m_cursorCol = m_vlines[m_cursorLine].len;
     formFeed();
-
-    // Re-print any data that wasn't supposed to have been deleted
-    for (int i = beg; i <= end; ++i)
-    {
-        // If this line came before the cursor ...
-        if (i < curLine)
-        {
-            // ... the line should get echoed unless we're erasing the screen
-            // before the cursor or just the entire screen
-            if (type != SpecialChars::ERASE_SCREEN &&
-                type != SpecialChars::ERASE_SCREEN_BEFORE)
-            {
-                write(m_vlines[i]);
-            }
-
-            write('\n');
-        }
-
-        // If this line contains the cursor ...
-        if (i == curLine)
-        {
-            vline before(m_vlines[i]),
-                  after(m_vlines[i]);
-
-            before.len = curCol;
-            after.beg = curCol;
-            after.len = m_vlines[i].len - after.beg;
-
-            // ... the part of the line before the cursor should be echoed
-            // only if we're deleting things after the cursor
-            if (type == SpecialChars::ERASE_LINE_AFTER ||
-                type == SpecialChars::ERASE_SCREEN_AFTER)
-            {
-                write(before);
-            }
-            else
-            {
-                writeBlanks(before.len);
-            }
-
-            // ... the part of the line after the cursor should be echoed only
-            // if we're deleting things before the cursor
-            if (type == SpecialChars::ERASE_LINE_BEFORE ||
-                type == SpecialChars::ERASE_SCREEN_BEFORE)
-            {
-                write(after);
-                write('\n');
-            }
-        }
-
-        // If this line came after the cursor ...
-        if (i > curLine)
-        {
-            // ... the line should get echoed unless we're erasing the screen
-            // after the cursor or just the entire screen
-            if (type != SpecialChars::ERASE_SCREEN &&
-                type != SpecialChars::ERASE_SCREEN_AFTER)
-            {
-                write(m_vlines[i]);
-                write('\n');
-            }
-        }
-    }
-
-    // Move the cursor relative to where it was before we echoed old lines
-    m_cursorCol = curCol;
-
-    if (type != SpecialChars::ERASE_SCREEN &&
-        type != SpecialChars::ERASE_SCREEN_AFTER)
-    {
-        // More text was printed after the line the cursor is supposed to be
-        // on, so move the cursor back to that line.
-        m_cursorLine = m_vlines.size() - 1 - curDistFromEnd;
-    }
 }
 
 void History::formFeed()
@@ -436,3 +326,4 @@ void History::wrapLines()
         }
     }
 }
+
