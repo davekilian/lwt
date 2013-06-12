@@ -209,6 +209,12 @@ private:
 
     /** Recomputes m_vlines based on m_lines and m_numVisibleCols */
     void wrapLines();
+
+    /** Writes the given line back into the buffer */
+    void write(const vline &line);
+
+    /** Writes blank characters to the buffer */
+    void writeBlanks(int count);
 };
 
 #endif

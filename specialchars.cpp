@@ -129,7 +129,7 @@ int SpecialChars::eat(const QString &str, int index)
                 // since most commands require integer arguments.
                 // Convenient for the case statements below
                 QVector<int> intargs;
-                QStringList parts = args.split(';');
+                QStringList parts = args.split(';', QString::SkipEmptyParts);
                 foreach (QString part, parts)
                 {
                     bool ok = false;
@@ -174,8 +174,8 @@ int SpecialChars::eat(const QString &str, int index)
 
                     case ANSI_CUP:
                     case ANSI_HVP:
-                        emit moveCursorTo(intargs.value(0, 0) + 1,
-                                          intargs.value(1, 0) + 1);
+                        emit moveCursorTo(intargs.value(0, 1) - 1,
+                                          intargs.value(1, 1) - 1);
                         return ret;
 
                     case ANSI_ED:

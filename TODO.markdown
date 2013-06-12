@@ -3,6 +3,12 @@
 
 Implement the erase() handler in History. This one's complicated.
 
+# Fix other escape sequences
+
+`History::scroll()` needs to support negative values
+
+Absolute coordinates for moving the cursor should be relative to the viewport
+
 # Bash History and Line Editing
 
 Line editing in bash isn't working correctly
