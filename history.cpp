@@ -186,21 +186,72 @@ void History::del()
 
 void History::erase(SpecialChars::EraseType type)
 {
-    // The spec-correct behavior here is to actually delete data from m_lines
-    // and then recompute m_vlines. However, Ctrl+L causes MinGW bash to
-    // produce a sequence that erases all history data. I'd rather Ctrl+L not
-    // be destructive, so I'm treating this like a form-feed++ event.
+    // The spec-correct behavior for this function is to actually delete data
+    // from m_lines and m_vlines. However, MinGW bash currently produces a
+    // sequence that would destructively erase all data when the user presses
+    // Ctrl+L. That's kind of unacceptable.
     //
-    // The basic idea is to form-feed and then re-add the data that wasn't
-    // supposed to be erased.
+    // So far I've only seen this handler used for two things:
+    // - Clearing the entire screen
+    // - Removing part of the current line buffer
+    //
+    // So, those are the two things we'll support. We'll implement the former
+    // case with a form-feed so that clearing the screen is non-destructive.
+    //
+    // Doing this properly in a non-destructive way is really hard btw :)
+    // Check revision 3a655e7a5d463d01f9fcd05d4c0d8f9c99374123
 
-    // TODO this is gonna be one ugly mother
-    (void)type;
+    if (type == SpecialChars::ERASE_SCREEN ||
+        type == SpecialChars::ERASE_SCREEN_BEFORE ||
+        type == SpecialChars::ERASE_SCREEN_AFTER)
+    {
+        formFeed();
+    }
+    else
+    {
+        if (m_cursorLine != m_vlines.size() - 1)
+        {
+            // We only support editing on the last line. Implementing erasure
+            // on arbitrary lines would be possible, but that plus word wrap
+            // would probably interact weirdly with terminal widget's scrollbar
+            // calculations.
+            return;
+        }
 
-    // DEBUG in the meantime ...
-    m_cursorLine = m_vlines.size() - 1;
-    m_cursorCol = m_vlines[m_cursorLine].len;
-    formFeed();
+        int lineIndex = m_lines.size() - 1,
+            vlineIndex = m_vlines.size() - 1;
+
+        if (type == SpecialChars::ERASE_LINE)
+        {
+            m_lines[lineIndex] = "";
+            m_vlines[vlineIndex].beg = 0;
+            m_vlines[vlineIndex].len = 0;
+        }
+        else if (type == SpecialChars::ERASE_LINE_BEFORE)
+        {
+            QString &l = m_lines[lineIndex];
+            vline &v = m_vlines[vlineIndex];
+
+            l = l.left(v.beg)                           // Before vline
+              + l.mid(v.beg + m_cursorCol,              // After cursor
+                      v.len - m_cursorCol)
+              + l.right(l.size() - (v.beg + v.len));    // After vline
+
+            v.len -= m_cursorCol;
+            m_cursorCol = 0;
+        }
+        else if (type == SpecialChars::ERASE_LINE_AFTER)
+        {
+            QString &l = m_lines[lineIndex];
+            vline &v = m_vlines[vlineIndex];
+
+            l = l.left(v.beg)                           // Before vline
+              + l.mid(v.beg, m_cursorCol)               // Before cursor
+              + l.right(l.size() - (v.beg + v.len));    // After vline
+
+            v.len = m_cursorCol;
+        }
+    }
 }
 
 void History::formFeed()

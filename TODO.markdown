@@ -1,18 +1,4 @@
 
-# Erase sequence
-
-This is still misbehaving for things like bash line history. I'm now thinking
-of bailing on the complicated handler and doing something simpler:
-
-* For any of the `ERASE_LINE`-type events, no-op unless the cursor is on the
-  last line. If it's on the last line, edit that line destructively
-
-* For any of the `ERASE_SCREEN`-type events, invoke form-feed
-
-First step: see if we can get away with just undoing the past few commits on
-the history and terminal widget objects. Looks if we did that, we'd have to
-repeat the following work:
-
 # `qDebug()` Unknown Control Sequences
 
 If we don't have a handler for an ANSI or xterm control sequence, print the
@@ -110,6 +96,12 @@ small improvement :)
 
 Note that this might not be a problem once we have the windows-specific shell
 driver.
+
+# Crash Bug
+
+Not sure why, but `git lg -p` on the repo currently crashes the app. This might
+be triggered by the input string being enormous, but I don't think we do
+anything that could cause the app to crash if the input string were enormous.
 
 # Shell Options
 
