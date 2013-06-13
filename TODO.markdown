@@ -1,9 +1,9 @@
 
 # Color support
 
-* Support control character codes for xterm-256 coloring
-* Support theming
-* Hardcode an attractive default theme
+* Handle SGR events in history
+* Take colors into account when rendering in TerminalWidget
+* Delete color #define's in terminalwidget.h
 
 # Shell Driver
 
@@ -86,6 +86,11 @@ anything that could cause the app to crash if the input string were enormous.
 * Create an options dialog
 * Create options for picking your shell driver
 * Create options for the shell drivers
+
+# Theme Options
+
+* Load/save themes to disk
+* Create options for changing the theme options
 
 # Option to handle Ctrl+L / Ctrl+D natively
 

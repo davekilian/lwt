@@ -5,6 +5,7 @@
 #include "history.h"
 #include "shell.h"
 #include "specialchars.h"
+#include "theme.h"
 
 #include <QLayout>
 #include <QScrollBar>
@@ -60,6 +61,7 @@ private:
     Shell *m_shell;
     Cursor m_cursor;
     SpecialChars m_chars;
+    Theme m_theme;
 
     QLayout *m_layout;
     QScrollBar *m_scrollBar;

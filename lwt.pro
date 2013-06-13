@@ -10,6 +10,7 @@ HEADERS  += cursor.h \
             shell.h \
             specialchars.h \
             terminalwidget.h \
+            theme.h
 
 SOURCES  += cursor.cpp \
             main.cpp \
@@ -17,7 +18,8 @@ SOURCES  += cursor.cpp \
             mainwindow.cpp \
             shell.cpp \
             specialchars.cpp \
-            terminalwidget.cpp
+            terminalwidget.cpp \
+            theme.cpp
 
 FORMS    += mainwindow.ui
 
