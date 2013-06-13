@@ -1,9 +1,4 @@
 
-# `qDebug()` Unknown Control Sequences
-
-If we don't have a handler for an ANSI or xterm control sequence, print the
-sequence to `qDebug()`. This should help us catch issues faster.
-
 # Bash History and Line Editing
 
 Line editing in bash isn't working correctly. Here's why:

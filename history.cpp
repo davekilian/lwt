@@ -26,8 +26,6 @@ void History::connectTo(SpecialChars *chars) const
                      SLOT(moveCursorBy(int, int)));
     connect(chars, SIGNAL(moveCursorTo(int, int)), 
                      SLOT(moveCursorTo(int, int)));
-    connect(chars, SIGNAL(popCursorPosition()), SLOT(popCursorPosition()));
-    connect(chars, SIGNAL(pushCursorPosition()), SLOT(pushCursorPosition()));
     connect(chars, SIGNAL(resetColors()), SLOT(resetColors()));
     connect(chars, SIGNAL(scroll(int)), SLOT(scroll(int)));
     connect(chars, SIGNAL(setColor(SpecialColors::Color, bool, bool)), 

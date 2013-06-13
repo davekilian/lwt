@@ -1,6 +1,7 @@
 
 #include "specialchars.h"
 
+#include <QDebug>
 #include <QStringList>
 #include <QVector>
 
@@ -219,6 +220,7 @@ int SpecialChars::eat(const QString &str, int index)
                         return ret;
 
                     default:
+                        unknownSequence(str, index, cmd, args);
                         return ret;
                 }
             }
@@ -233,8 +235,13 @@ int SpecialChars::eat(const QString &str, int index)
                         return ret;
 
                     default:
+                        unknownSequence(str, index, cmd, args);
                         return ret;
                 }
+            }
+            else
+            {
+                unknownSequence(str, index, 0, QString());
             }
 
             return ret;
@@ -427,5 +434,26 @@ QString SpecialChars::translate(QKeyEvent *ev)
     }
 
     return ret;
+}
+
+void SpecialChars::unknownSequence(const QString &str, int index, 
+                                   char cmd, const QString &args)
+{
+    qDebug() << "Unknown control sequence starting at position"
+             << index;
+
+    // This is a separate call to qDebug() because (at least on my machine)
+    // the entire qDebug statement will no-op if the str has non-printable
+    // characters in it >.>
+    qDebug() << "in:\n"
+             << str;
+
+    if (cmd != 0)
+    {
+        qDebug() << "Parsed command: " << (int)cmd << " (" << cmd << ")\n"
+                 << "With args: " << args;
+    }
+
+    qDebug() << "Output may be garbled\n";
 }
 

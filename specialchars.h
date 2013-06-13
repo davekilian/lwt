@@ -203,6 +203,9 @@ private:
 
     /** Triggers setColor and setColor256 events for ASCII SGR codes */
     void handleSGR(QVector<int> args);
+
+    /** On a debug build, prints a warning about an unknown control sequence */
+    void unknownSequence(const QString &str, int index, char cmd, const QString &args);
 };
 
 #endif // SPECIALCHARS_H
