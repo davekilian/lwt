@@ -15,19 +15,18 @@ History::~History() { }
 
 void History::connectTo(SpecialChars *chars) const
 {
-    connect(chars, SIGNAL(backspace()), SLOT(backspace()));
     connect(chars, SIGNAL(carriageReturn()), SLOT(carriageReturn()));
-    connect(chars, SIGNAL(del()), SLOT(del()));
+    connect(chars, SIGNAL(del(int)), SLOT(del(int)));
     connect(chars, SIGNAL(erase(SpecialChars::EraseType)), 
                      SLOT(erase(SpecialChars::EraseType)));
     connect(chars, SIGNAL(formFeed()), SLOT(formFeed()));
     connect(chars, SIGNAL(horizontalTab()), SLOT(horizontalTab()));
+    connect(chars, SIGNAL(insert(int)), SLOT(insert(int)));
     connect(chars, SIGNAL(moveCursorBy(int, int)), 
                      SLOT(moveCursorBy(int, int)));
     connect(chars, SIGNAL(moveCursorTo(int, int)), 
                      SLOT(moveCursorTo(int, int)));
     connect(chars, SIGNAL(resetColors()), SLOT(resetColors()));
-    connect(chars, SIGNAL(scroll(int)), SLOT(scroll(int)));
     connect(chars, SIGNAL(setColor(SpecialColors::Color, bool, bool)), 
                      SLOT(setColor(SpecialColors::Color, bool, bool)));
     connect(chars, SIGNAL(setColor256(int, bool)), 
@@ -144,42 +143,24 @@ void History::onViewportResized(int numRowsVisible, int numColsVisible)
     emit updated();
 }
 
-void History::backspace()
-{
-    if (m_cursorCol == 0)
-        return; // Nothing before the cursor
-
-    Q_ASSERT(m_cursorLine < m_vlines.size());
-
-    const vline &v = m_vlines[m_cursorLine];
-    Q_ASSERT(m_cursorCol <= v.len);
-
-    m_lines[v.line].remove(v.beg + m_cursorCol - 1, 1);
-    --m_cursorCol;
-
-    wrapLines();
-
-    emit cursorMoved(m_cursorLine, m_cursorCol);
-    emit updated();
-}
-
 void History::carriageReturn()
 {
     m_cursorCol = 0;
     emit cursorMoved(m_cursorLine, m_cursorCol);
 }
 
-void History::del()
+void History::del(int n)
 {
     Q_ASSERT(m_cursorLine < m_vlines.size());
 
     const vline &v = m_vlines[m_cursorLine];
     Q_ASSERT(m_cursorCol <= v.len);
 
-    m_lines[v.line].remove(v.beg + m_cursorCol, 1);
+    if (m_cursorCol + n > v.len)
+        n = v.len - m_cursorCol;
 
-    wrapLines();
-    emit updated();
+    m_lines[v.line].remove(v.beg + m_cursorCol, n);
+    m_vlines[m_cursorLine].len -= n;
 }
 
 void History::erase(SpecialChars::EraseType type)
@@ -254,7 +235,10 @@ void History::erase(SpecialChars::EraseType type)
 
 void History::formFeed()
 {
-    scroll(1);
+    for (int i = 0; i < m_numRowsVisible; ++i)
+        write('\n');
+
+    emit scrollToBottom();
 }
 
 void History::horizontalTab()
@@ -271,9 +255,36 @@ void History::horizontalTab()
         write(' ');
 }
 
+void History::insert(int n)
+{
+    // Get the vline to edit
+    Q_ASSERT(m_cursorLine < m_vlines.size());
+
+    const vline &v = m_vlines[m_cursorLine];
+    Q_ASSERT(m_cursorCol <= v.len);
+
+    // Add n blanks to the line starting at the cursor
+    QString toInsert;
+    for (int i = 0; i < n; ++i)
+        toInsert += ' ';
+
+    m_lines[v.line].insert(v.beg + m_cursorCol, toInsert);
+
+    // Update v.beg for subsequent lines that share this line
+    for (int i = m_cursorLine + 1;
+         i < m_vlines.size() && m_vlines[i].line == v.line;
+         ++i)
+    {
+        m_vlines[i].beg += n;
+    }
+}
+
 void History::moveCursorBy(int rowDelta, int colDelta)
 {
-    moveCursorTo(m_cursorLine + rowDelta, m_cursorCol + colDelta);
+    int row = m_cursorLine + rowDelta - (m_vlines.size() - 1 - m_numRowsVisible);
+    int col = m_cursorCol + colDelta;
+
+    moveCursorTo(row, col);
 }
 
 void History::moveCursorTo(int row, int col)
@@ -307,16 +318,6 @@ void History::moveCursorTo(int row, int col)
 void History::resetColors()
 {
     // TODO
-}
-
-void History::scroll(int npages)
-{
-    // TODO support -npages values. What's the desired behavior exactly?
-
-    for (int i = 0; i < npages * m_numRowsVisible; ++i)
-        write('\n');
-
-    emit scrollToBottom();
 }
 
 void History::setColor(SpecialChars::Color c, bool bright, bool foreground)

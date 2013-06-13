@@ -99,16 +99,15 @@ private slots:
      *  inside a beginWrite / endWrite block.
      */
 
-    void backspace();
     void carriageReturn();
-    void del();
+    void del(int n);
     void erase(SpecialChars::EraseType type);
     void formFeed();
     void horizontalTab();
+    void insert(int n);
     void moveCursorBy(int rowDelta, int colDelta);
     void moveCursorTo(int row, int col);
     void resetColors();
-    void scroll(int npages);
     void setColor(SpecialChars::Color c, bool bright, bool foreground);
     void setColor256(int index, bool foreground);
     void verticalTab();

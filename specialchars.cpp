@@ -48,6 +48,7 @@
 
 #define ANSI_CSI        [ ASCII_ESC, '[' ]  // Control Sequence Introducer
 
+#define ANSI_INS        '@'     // Insert Characters
 #define ANSI_CUU        'A'     // Cursor Up
 #define ANSI_CUD        'B'     // Cursor Down
 #define ANSI_CUF        'C'     // Cursor Forward
@@ -58,6 +59,7 @@
 #define ANSI_CUP        'H'     // Cursor Position
 #define ANSI_ED         'J'     // Erase Data
 #define ANSI_EL         'K'     // Erase in Line
+#define ANSI_DEL        'P'     // Delete Characters
 #define ANSI_SU         'S'     // Scroll Up
 #define ANSI_SD         'T'     // Scroll Down
 #define ANSI_HVP        'f'     // Horizontal and Vertical Position
@@ -95,7 +97,7 @@ int SpecialChars::eat(const QString &str, int index)
             return index + 1;
 
         case ASCII_BS:
-            emit backspace();
+            emit moveCursorBy(0, -1);
             return index + 1;
 
         case ASCII_CR:
@@ -103,7 +105,7 @@ int SpecialChars::eat(const QString &str, int index)
             return index + 1;
 
         case ASCII_DEL:
-            emit del();
+            emit del(1);
             return index + 1;
 
         case ASCII_FF:
@@ -209,6 +211,14 @@ int SpecialChars::eat(const QString &str, int index)
 
                     case ANSI_RCP:
                         emit popCursorPosition();
+                        return ret;
+
+                    case ANSI_INS:
+                        emit insert(intargs.value(0, 1));
+                        return ret;
+
+                    case ANSI_DEL:
+                        emit del(intargs.value(0, 1));
                         return ret;
 
                     case DECTCEM_HIC:

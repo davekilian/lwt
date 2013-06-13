@@ -1,21 +1,4 @@
 
-# Bash History and Line Editing
-
-Line editing in bash isn't working correctly. Here's why:
-
-* Backspace is only supposed to move the cursor back
-* There's an escape sequence CSI#@, which inserts # blank characters at the
-  cursor
-* There's an escape sequence CSI#P, which deletes # characters at the cursor
-
-# ASCII SU/SD Handler
-
-Our current handler is incorrect -- this is supposed to isnert N newlines, not
-N pages.
-
-The way it works will probably interact very confusingly with our scrollback
-buffer. Not sure it's worth having this at all, since I've never seen it used.
-
 # Color support
 
 * Support control character codes for xterm-256 coloring

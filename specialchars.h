@@ -104,16 +104,11 @@ signals:
     /** Play the system bell sound */
     void bell();
 
-    /** Clear the character before the cursor and move the cursor back.
-     *  No effect if the cursor is at the beginning of its line.
-     */
-    void backspace();
-
     /** Move the cursor to the beginning of its line */
     void carriageReturn();
 
-    /** Clear the character underneath the cursor */
-    void del();
+    /** Delete n characters on this line, starting at the cursor */
+    void del(int n);
 
     /** Clear some part of the screen. See EraseType for specific behaviors */
     void erase(SpecialChars::EraseType type);
@@ -123,6 +118,11 @@ signals:
 
     /** Indent the cursor */
     void horizontalTab();
+
+    /** Insert n blank characters, starting at the cursor.
+     *  Do not move the cursor.
+     */
+    void insert(int n);
 
     /** Move the cursor relative to its current position */
     void moveCursorBy(int rowDelta, int colDelta);
