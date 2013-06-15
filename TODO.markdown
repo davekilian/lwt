@@ -1,8 +1,10 @@
 
 # Color support
 
-* Handle SGR events in history
 * Take colors into account when rendering in TerminalWidget
+    * Refactor visibleLines maybe. Or add a new method?
+      This requires some thinking
+    * Clear background color with color at index 0
 * Delete color #define's in terminalwidget.h
 
 # Shell Driver
@@ -49,9 +51,14 @@ width and enforces wrapping) or call `ReadFile` / `ReadConsole` on the stdout
 stream. Ideally I can do the latter to get raw character output with no
 processing. 
 
+Also, it's not clear how to send a SIGINT to a process on Windows. Apparently 
+[this person](http://www.latenighthacking.com/projects/2003/sendSignal/)
+figured it out already though. There's also `GenerateControlCtrlEvent()`, which
+might work for us since we spawned the console the shell's running in.
+
 Reference:
 
-* [MSDN Console Docs](http://msdn.microsoft.com/en-us/library/windows/desktop/ms682010(v=vs.85).aspx)
+* [MSDN Console Docs](http://msdn.microsoft.com/en-us/library/windows/desktop/ms682010(v=vs.85\).aspx)
 * [winpty](https://github.com/rprichard/winpty)
 * [Someone else's notes on Windows consoles](https://code.soundsoftware.ac.uk/projects/easyhg/wiki/TalkingToSubprocess)
 

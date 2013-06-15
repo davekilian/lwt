@@ -110,27 +110,57 @@ void TerminalWidget::paintEvent(QPaintEvent *)
                    | QPainter::SmoothPixmapTransform
                    | QPainter::HighQualityAntialiasing);
 
-    QBrush bg(QColor(TERMINAL_BG_R, TERMINAL_BG_G, TERMINAL_BG_B));
-    p.fillRect(0, 0, width(), height(), bg);
-
     QFont font(TERMINAL_FONT_FAMILY, TERMINAL_FONT_HEIGHT);
     font.setHintingPreference(QFont::PreferFullHinting);
-
     p.setFont(font);
+
     p.setPen(QColor(TERMINAL_FG_R, TERMINAL_FG_G, TERMINAL_FG_B));
 
+    // Fill the background
+    QBrush bg(m_theme.color(0));
+    p.fillRect(0, 0, width(), height(), bg);
+
+    // Draw text
     QFontMetrics fm(font);
-    QStringList lines = m_history.visibleLines(m_scrollBar->value(),
-                                               m_scrollBar->value() + height(),
-                                               fm.lineSpacing());
+    RenderData rd = m_history.renderData(m_scrollBar->value(),
+                                         m_scrollBar->value() + height(),
+                                         fm.lineSpacing());
 
     int y = fm.lineSpacing() - (m_scrollBar->value() % fm.lineSpacing());
-    foreach (const QString &line, lines)
+    rd.begin();
+
+    while (rd.nextLine())
     {
-        p.drawText(0, y, line);
+        RenderData::Section section;
+        int x = 0;
+
+        while (rd.next(&section))
+        {
+            // TODO background color
+
+            p.setPen(m_theme.color(section.foreground));
+            p.drawText(x, y, section.data);
+            x += fm.averageCharWidth() * section.data.size();
+        }
+
         y += fm.lineSpacing();
     }
 
+    rd.end();
+
+    // TODO colors don't work after you scroll down at all
+    //
+    // TODO this is totally broken when you actually have wrapping lines (e.g.
+    // run make clean && make -j 4 in ~/lwt)
+    //
+    // TODO the cursor sometimes appears in the wrong place relative to the
+    // lines being drawn. Happens when I run "ls ~". Resizing the viewport
+    // changes the behavior, so probably a bug in History::renderData()
+    //
+    // TODO there are a lot of garbage empty section in the output of
+    // History::renderData()
+
+    // Draw the cursor, if applicable
     m_cursor.render(p);
 }
 
@@ -234,4 +264,3 @@ void TerminalWidget::doSetWindowTitle(const QString &title)
 {
     ((QWidget*)parent()->parent())->setWindowTitle(title);
 }
-

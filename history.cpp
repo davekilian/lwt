@@ -27,8 +27,8 @@ void History::connectTo(SpecialChars *chars) const
     connect(chars, SIGNAL(moveCursorTo(int, int)), 
                      SLOT(moveCursorTo(int, int)));
     connect(chars, SIGNAL(resetColors()), SLOT(resetColors()));
-    connect(chars, SIGNAL(setColor(SpecialColors::Color, bool, bool)), 
-                     SLOT(setColor(SpecialColors::Color, bool, bool)));
+    connect(chars, SIGNAL(setColor(SpecialChars::Color, bool, bool)),
+                     SLOT(setColor(SpecialChars::Color, bool, bool)));
     connect(chars, SIGNAL(setColor256(int, bool)), 
                      SLOT(setColor256(int, bool)));
     connect(chars, SIGNAL(verticalTab()), SLOT(verticalTab()));
@@ -125,6 +125,94 @@ QStringList History::visibleLines(int yTop, int yBottom, int lineHeight) const
     }
 
     return ret;
+}
+
+RenderData History::renderData(int yTop, int yBottom, int lineHeight) const
+{
+    int minLine = yTop / lineHeight,
+        maxLine = yBottom / lineHeight;
+
+    // Scan through gevents to find ...
+    int fg = 7,     // ... the current foreground color
+        bg = 0,     // ... the current background color
+        gindex = 0; // ... the index of the next gevent
+
+    for (int i = 0; i < m_gevents.size(); ++i)
+    {
+        const gevent &g = m_gevents[i];
+        const vline  &v = m_vlines[i];
+
+        if (g.line > v.line ||
+           (g.line == v.line && g.col > v.beg))
+        {
+            // This is the first gevent that occurs after the first visible
+            // character -- done scanning
+            gindex = i;
+            break;
+        }
+        else
+        {
+            if (g.foreground)
+                fg = g.color;
+            else
+                bg = g.color;
+        }
+    }
+
+    // Walk through the visible lines, splitting them up into color sections
+    QVector<RenderData::Section> sections;
+
+    for (int i = minLine; i < maxLine && i < m_vlines.size(); ++i)
+    {
+        const vline &v = m_vlines[i];
+        int vindex = v.beg;
+
+        // While there are unprocessed graphics changes within this vline,
+        // subdivide the vline and process the graphics changes
+        while (gindex < m_gevents.size() &&
+               m_gevents[gindex].line == v.line &&
+               m_gevents[gindex].col <= v.beg + v.len)
+        {
+            RenderData::Section s;
+            s.line = i;
+            s.foreground = fg;
+            s.background = bg;
+
+            gevent g = m_gevents[gindex];
+            s.data = m_lines[v.line].mid(vindex, g.col - vindex);
+            vindex = g.col;
+
+            sections.append(s);
+
+            while (g.col == vindex)
+            {
+                if (g.foreground)
+                    fg = g.color;
+                else
+                    bg = g.color;
+
+                ++gindex;
+                if (gindex >= m_gevents.size())
+                    break;
+
+                g = m_gevents[gindex];
+            }
+        }
+
+        // No more graphics changes in the vline -- process the rest of it
+        if (vindex <= v.len)
+        {
+            RenderData::Section s;
+            s.line = i;
+            s.data = m_lines[v.line].mid(vindex, v.len - vindex);
+            s.foreground = fg;
+            s.background = bg;
+
+            sections.append(s);
+        }
+    }
+
+    return RenderData(sections);
 }
 
 int History::numLines() const
@@ -317,22 +405,42 @@ void History::moveCursorTo(int row, int col)
 
 void History::resetColors()
 {
-    // TODO
+    setColor(SpecialChars::DEFAULT, false, true);
+    setColor(SpecialChars::DEFAULT, false, false);
 }
 
 void History::setColor(SpecialChars::Color c, bool bright, bool foreground)
 {
-    (void)c;
-    (void)bright;
-    (void)foreground;
-    // TODO
+    int color = (int)c;
+
+    if (c == SpecialChars::DEFAULT)
+    {
+        if (foreground)
+            color = (int)SpecialChars::WHITE;
+        else
+            color = (int)SpecialChars::BLACK;
+    }
+
+    if (bright)
+        color += 8;
+
+    setColor256(color, foreground);
 }
 
-void History::setColor256(int index, bool foreground)
+void History::setColor256(int color, bool foreground)
 {
-    (void)index;
-    (void)foreground;
-    // TODO
+    gevent g(m_cursorLine, m_cursorCol, foreground, color);
+
+    // Go through the list backwards, and insert after the first existing
+    // gevent that is supposed to come before this gevent (We go backwards
+    // because we expect most gevents to insert near the end of the buffer)
+    int index = m_gevents.size();
+    while (index - 1 >= 0 && m_gevents[index - 1].compareTo(g) > 0)
+    {
+        --index;
+    }
+
+    m_gevents.insert(index, g);
 }
 
 void History::verticalTab()

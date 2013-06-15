@@ -1,6 +1,7 @@
 #ifndef HISTORY_H
 #define HISTORY_H
 
+#include "renderdata.h"
 #include "specialchars.h"
 
 #include <QObject>
@@ -46,6 +47,9 @@ public:
      */
     QString line(int index) const;
 
+    /** Returns the number of lines of text this history contains */
+    int numLines() const;
+
     /** Returns a list of lines that are currently visible, after taking word
      *  wrap into account
      *
@@ -58,8 +62,16 @@ public:
      */
     QStringList visibleLines(int yTop, int yBottom, int lineHeight) const;
 
-    /** Returns the number of lines of text this history contains */
-    int numLines() const;
+    /** Returns the data needed to render the current viewport 
+     *
+     *  @param yTop         The Y coordinate in pixels of the top of the 
+     *                      viewport
+     *  @param yBottom      The Y coordinate in pixels of the bottom of 
+     *                      the viewport
+     *  @param lineHeight   The distance in pixels between consecutive lines
+     *                      when rendered to the screen
+     */
+    RenderData renderData(int yTop, int yBottom, int lineHeight) const;
 
     /** Must be called when the viewport is resized horizontally.
      *
@@ -144,6 +156,11 @@ private:
     /** Description of a graphics event */
     struct gevent
     {
+        gevent() : line(0), col(0), foreground(false), color(0) { }
+        gevent(int line, int col, bool fg, int color) 
+            : line(line), col(col), foreground(fg), color(color)
+        { }
+
         /** The canonical line number this event occured on
          *  This indexes into m_lines, not m_vlines
          */
@@ -161,6 +178,18 @@ private:
          *  palette scheme
          */
         int color;
+
+        /** Returns ...
+         *    < 0 if this gevent is lexically before the other,
+         *      0 if this gevent is lexically the same as the other,
+         *    > 0 if this gevent is lexically after the other
+         */
+        int compareTo(const gevent &other) 
+        { 
+            return (line == other.line) 
+                 ? (col - other.col) 
+                 : (line - other.line); 
+        }
     };
 
     /** The list of canonical lines
