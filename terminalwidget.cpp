@@ -136,7 +136,13 @@ void TerminalWidget::paintEvent(QPaintEvent *)
 
         while (rd.next(&section))
         {
-            // TODO background color
+            if (section.background != 0)
+            {
+                p.fillRect(x, y,
+                           section.data.size() * fm.averageCharWidth(),
+                           fm.lineSpacing(),
+                           QBrush(m_theme.color(section.background)));
+            }
 
             p.setPen(m_theme.color(section.foreground));
             p.drawText(x, y, section.data);
