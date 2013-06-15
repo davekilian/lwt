@@ -99,6 +99,54 @@ QChar History::charAt(int row, int col) const
     return l[v.beg + col];
 }
 
+int History::foregroundColorAt(int row, int col) const
+{
+    /* XXX A faster way to do this would be to binary search through the gevent
+     * list looking for the foreground color change nearest the given row and
+     * column. However, this is complicated because the gevent list has some
+     * irrelevant events (e.g. those that change the background color rather
+     * than the foreground color). I'm not sure what a binary search should do
+     * upon hitting one of the irrelevant items -- we could search for the
+     * nearest event and scan backwards until we find a relevant event, but
+     * that could be worse than just walking the list. 
+     *
+     * For now I'm just going to walk the list. gevents occur pretty frequently
+     * though, so if this poses a performance issue we'll have to rethink our
+     * strategy. Same goes for backgroundColorAt()
+     */
+
+    int fg = 7;
+  
+    for (int i = 0; i < m_gevents.size(); ++i)
+    {
+        const gevent &g = m_gevents[i];
+        if (g.line > row || (g.line == row && g.col > col))
+            break;
+
+        if (g.foreground)
+            fg = g.color;
+    }
+
+    return fg;
+}
+
+int History::backgroundColorAt(int row, int col) const
+{
+    int bg = 0;
+
+    for (int i = 0; i < m_gevents.size(); ++i)
+    {
+        const gevent &g = m_gevents[i];
+        if (g.line > row || (g.line == row && g.col > col))
+            break;
+
+        if (!g.foreground)
+            bg = g.color;
+    }
+
+    return bg;
+}
+
 QString History::line(int index) const
 {
     if (index >= m_vlines.size())

@@ -109,12 +109,12 @@ void Cursor::render(QPainter &p)
         y = m_row * h - m_parent->scrollAmount();
 
     // Draw the cursor itself
-    QBrush fg(QColor(TERMINAL_FG_R, TERMINAL_FG_G, TERMINAL_FG_B));
+    QBrush fg(m_parent->foregroundColorAt(m_row, m_col));
     p.fillRect(x, y + fm.descent(), w, fm.ascent() + fm.descent(), fg);
     
     // Draw the inverted character the cursor is over
     p.setFont(font);
-    p.setPen(QColor(TERMINAL_BG_R, TERMINAL_BG_G, TERMINAL_BG_B));
+    p.setPen(QColor(m_parent->backgroundColorAt(m_row, m_col)));
 
     QChar c = m_parent->history().charAt(m_row, m_col);
     p.drawText(x, y + fm.lineSpacing(), QString(c));

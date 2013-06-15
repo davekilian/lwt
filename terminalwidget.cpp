@@ -72,6 +72,16 @@ void TerminalWidget::setScrollAmount(int val)
     m_scrollBar->setValue(val);
 }
 
+QColor TerminalWidget::foregroundColorAt(int row, int col) const
+{
+    return m_theme.color(m_history.foregroundColorAt(row, col));
+}
+
+QColor TerminalWidget::backgroundColorAt(int row, int col) const
+{
+    return m_theme.color(m_history.backgroundColorAt(row, col));
+}
+
 void TerminalWidget::onShellRead(const QByteArray &data)
 {
     QString input(data);
@@ -113,8 +123,6 @@ void TerminalWidget::paintEvent(QPaintEvent *)
     QFont font(TERMINAL_FONT_FAMILY, TERMINAL_FONT_HEIGHT);
     font.setHintingPreference(QFont::PreferFullHinting);
     p.setFont(font);
-
-    p.setPen(QColor(TERMINAL_FG_R, TERMINAL_FG_G, TERMINAL_FG_B));
 
     // Fill the background
     QBrush bg(m_theme.color(0));

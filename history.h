@@ -42,6 +42,16 @@ public:
      */
     QChar charAt(int row, int col) const;
 
+    /** Gets the color palette index of the foreground color of the character
+     *  at the given row and column. This method takes word wrap into account.
+     */
+    int foregroundColorAt(int row, int col) const;
+
+    /** Gets the color palette index of the background color of the character
+     *  at the given row and column. This method takes word wrap into account.
+     */
+    int backgroundColorAt(int row, int col) const;
+
     /** Gets the $(index)th line of text on the screen, after taking word wrap
      *  into account.
      */

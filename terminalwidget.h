@@ -14,12 +14,6 @@
 // TODO replace this with a configurable theming system
 #define TERMINAL_FONT_FAMILY    "Andale Mono"
 #define TERMINAL_FONT_HEIGHT    12
-#define TERMINAL_BG_R           7
-#define TERMINAL_BG_G           54
-#define TERMINAL_BG_B           66
-#define TERMINAL_FG_R           238
-#define TERMINAL_FG_G           232
-#define TERMINAL_FG_B           213
 
 /** Fills the primary terminal window, rendering terminal output
   * text and accepting user input
@@ -38,6 +32,12 @@ public:
     /** Gets or sets the amount the view has been scrolled, in pixels */
     int scrollAmount();
     void setScrollAmount(int);
+
+    /** Gets the foreground or background color of the cell at the given row
+     *  and column (in cursor coordinates)
+     */
+    QColor foregroundColorAt(int row, int col) const;
+    QColor backgroundColorAt(int row, int col) const;
 
 protected:
     void keyPressEvent(QKeyEvent *);

@@ -1,12 +1,4 @@
 
-# Color support
-
-* Take colors into account when rendering in TerminalWidget
-    * Refactor visibleLines maybe. Or add a new method?
-      This requires some thinking
-    * Clear background color with color at index 0
-* Delete color #define's in terminalwidget.h
-
 # Shell Driver
 
 Abstract system with three implementations:
