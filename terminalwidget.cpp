@@ -148,18 +148,6 @@ void TerminalWidget::paintEvent(QPaintEvent *)
 
     rd.end();
 
-    // TODO colors don't work after you scroll down at all
-    //
-    // TODO this is totally broken when you actually have wrapping lines (e.g.
-    // run make clean && make -j 4 in ~/lwt)
-    //
-    // TODO the cursor sometimes appears in the wrong place relative to the
-    // lines being drawn. Happens when I run "ls ~". Resizing the viewport
-    // changes the behavior, so probably a bug in History::renderData()
-    //
-    // TODO there are a lot of garbage empty section in the output of
-    // History::renderData()
-
     // Draw the cursor, if applicable
     m_cursor.render(p);
 }

@@ -132,6 +132,9 @@ RenderData History::renderData(int yTop, int yBottom, int lineHeight) const
     int minLine = yTop / lineHeight,
         maxLine = yBottom / lineHeight;
 
+    if (minLine >= m_vlines.size())
+        return RenderData(QVector<RenderData::Section>());
+
     // Scan through gevents to find ...
     int fg = 7,     // ... the current foreground color
         bg = 0,     // ... the current background color
@@ -140,7 +143,7 @@ RenderData History::renderData(int yTop, int yBottom, int lineHeight) const
     for (int i = 0; i < m_gevents.size(); ++i)
     {
         const gevent &g = m_gevents[i];
-        const vline  &v = m_vlines[i];
+        const vline  &v = m_vlines[minLine];
 
         if (g.line > v.line ||
            (g.line == v.line && g.col > v.beg))
@@ -200,11 +203,11 @@ RenderData History::renderData(int yTop, int yBottom, int lineHeight) const
         }
 
         // No more graphics changes in the vline -- process the rest of it
-        if (vindex <= v.len)
+        if (vindex - v.beg <= v.len)
         {
             RenderData::Section s;
             s.line = i;
-            s.data = m_lines[v.line].mid(vindex, v.len - vindex);
+            s.data = m_lines[v.line].mid(vindex, v.len - (vindex - v.beg));
             s.foreground = fg;
             s.background = bg;
 
@@ -429,7 +432,10 @@ void History::setColor(SpecialChars::Color c, bool bright, bool foreground)
 
 void History::setColor256(int color, bool foreground)
 {
-    gevent g(m_cursorLine, m_cursorCol, foreground, color);
+    int line = m_vlines[m_cursorLine].line,
+        col  = m_vlines[m_cursorLine].beg + m_cursorCol;
+
+    gevent g(line, col, foreground, color);
 
     // Go through the list backwards, and insert after the first existing
     // gevent that is supposed to come before this gevent (We go backwards
