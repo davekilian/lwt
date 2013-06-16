@@ -46,7 +46,7 @@ protected:
     void wheelEvent(QWheelEvent *);
 
 private slots:
-    void onShellRead(const QByteArray &data);
+    void onShellRead(const QString &data);
     void onShellExited();
 
     void onScroll(int);

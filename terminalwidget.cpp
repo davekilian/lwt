@@ -10,11 +10,12 @@
 #include <QPaintEvent>
 #include <QWheelEvent>
 
-TerminalWidget::TerminalWidget(QWidget *parent) :
-    QWidget(parent),
-    m_cursor(this),
-    m_layout(new QHBoxLayout),
-    m_scrollBar(new QScrollBar)
+TerminalWidget::TerminalWidget(QWidget *parent) 
+    : QWidget(parent),
+      m_shell(Shell::create()),
+      m_cursor(this),
+      m_layout(new QHBoxLayout),
+      m_scrollBar(new QScrollBar)
 {
     // Set up the scroll bar
     ((QHBoxLayout*)m_layout)->addWidget(m_scrollBar, 0, Qt::AlignRight);
@@ -41,18 +42,15 @@ TerminalWidget::TerminalWidget(QWidget *parent) :
 
     m_history.connectTo(&m_chars);
 
-    // Debug
-    QStringList a;
-    a.append("--login");
-    a.append("-i");
-    m_shell = new Shell("C:\\MinGW\\msys\\1.0\\bin\\sh.exe", a);
-    connect(m_shell, SIGNAL(read(QByteArray)), SLOT(onShellRead(QByteArray)));
+    // Set up handlers for shell events
+    connect(m_shell, SIGNAL(read(QString)), SLOT(onShellRead(QString)));
     connect(m_shell, SIGNAL(closed()), SLOT(onShellExited()));
     m_shell->open();
 }
 
 TerminalWidget::~TerminalWidget() 
 { 
+    delete m_shell;
     delete m_scrollBar;
     delete m_layout;
 }
@@ -82,9 +80,8 @@ QColor TerminalWidget::backgroundColorAt(int row, int col) const
     return m_theme.color(m_history.backgroundColorAt(row, col));
 }
 
-void TerminalWidget::onShellRead(const QByteArray &data)
+void TerminalWidget::onShellRead(const QString &input)
 {
-    QString input(data);
     m_history.beginWrite();
 
     int i = 0;

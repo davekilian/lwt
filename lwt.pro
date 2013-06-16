@@ -7,6 +7,7 @@ QT       += core gui widgets
 HEADERS  += cursor.h \
             history.h \
             mainwindow.h \
+            processshell.h \
             renderdata.h \
             shell.h \
             specialchars.h \
@@ -18,6 +19,7 @@ SOURCES  += cursor.cpp \
             history.cpp \
             renderdata.cpp \
             mainwindow.cpp \
+            processshell.cpp \
             shell.cpp \
             specialchars.cpp \
             terminalwidget.cpp \

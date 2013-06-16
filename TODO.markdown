@@ -1,14 +1,10 @@
 
 # Shell Driver
 
-* Create an abstract shell interface corresponding to the current shell
-  driver's interface
-* Refactor the existing shell code so it implements the new shell interface
-* Make sure everything's working
 * Implement a Windows-specific driver using the Console API
 * Activate that driver by default on Windows
 * Add the ability to respond to a DSR to the shell driver
-* Implement for the existing shells
+* Implement DSR for the existing shells
 * Hook up the DSR call when initializing the shell driver
 * Add the ability for the driver to send signals (at least SIGINT)
 
