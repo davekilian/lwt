@@ -12,7 +12,8 @@ HEADERS  += cursor.h \
             shell.h \
             specialchars.h \
             terminalwidget.h \
-            theme.h
+            theme.h \
+            windowsshell.h 
 
 SOURCES  += cursor.cpp \
             main.cpp \
@@ -23,7 +24,8 @@ SOURCES  += cursor.cpp \
             shell.cpp \
             specialchars.cpp \
             terminalwidget.cpp \
-            theme.cpp
+            theme.cpp \
+            windowsshell.cpp
 
 FORMS    += mainwindow.ui
 

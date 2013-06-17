@@ -2,9 +2,15 @@
 #include "shell.h"
 
 #include "processshell.h"
+#include "windowsshell.h"
 
 Shell* Shell::create()
 {
+#ifdef Q_OS_WIN32
+
+    return new WindowsShell(); // TODO shell binary and args
+
+#else
     // TODO binary information belongs in a configuration file
     QString binary("C:\\MinGW\\msys\\1.0\\bin\\sh.exe");
 
@@ -13,5 +19,6 @@ Shell* Shell::create()
     args.append("-i");
 
     return new ProcessShell(binary, args);
+#endif
 }
 
